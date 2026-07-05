@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardCopy, LayoutDashboard, Settings, Receipt, Check, ExternalLink, HelpCircle, Loader2, History, Package } from 'lucide-react';
+import { LayoutDashboard, Receipt, Loader2, History, Package } from 'lucide-react';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
 import InvoiceHistory from './components/InvoiceHistory';
@@ -10,7 +10,7 @@ import ProductManager from './components/ProductManager';
 
 export default function App() {
   const [view, setView] = useState('generator');
-  const [scriptUrl, setScriptUrl] = useState(() => localStorage.getItem('invoice_script_url') || '');
+  const scriptUrl = 'https://script.google.com/macros/s/AKfycbycUqiSU3Z_7FcujuQBTqRcsijKuY0IdCgFq6LDo9R1HYsBgC9o2OqlrVdyhXaSPvtR/exec';
   const [localInvoices, setLocalInvoices] = useState(() => JSON.parse(localStorage.getItem('invoices') || '[]'));
   const [localItems, setLocalItems] = useState(() => JSON.parse(localStorage.getItem('invoice_items') || '[]'));
   
@@ -22,7 +22,6 @@ export default function App() {
 
   const [printInvoice, setPrintInvoice] = useState(null);
   const [printItems, setPrintItems] = useState([]);
-  const [tempUrl, setTempUrl] = useState(scriptUrl);
   const [copied, setCopied] = useState(false);
   
   // UI States
@@ -92,14 +91,6 @@ export default function App() {
       return { description: name, unitPrice: recentItem ? recentItem.unitPrice : 0 };
     });
   }, [items, dbProducts]);
-
-  const handleSaveSettings = (e) => {
-    e.preventDefault();
-    localStorage.setItem('invoice_script_url', tempUrl);
-    setScriptUrl(tempUrl);
-    showModal('สำเร็จ', 'บันทึกการตั้งค่าลิงก์เรียบร้อยแล้ว!', 'success');
-    fetchData(tempUrl);
-  };
 
   const handleManageProduct = async (subAction, product) => {
     if (!scriptUrl) {
@@ -285,22 +276,6 @@ export default function App() {
               <Package size={20} />
               จัดการสินค้า
             </li>
-            <li 
-              className={`menu-item ${view === 'settings' ? 'active' : ''}`}
-              onClick={() => {
-                if (view !== 'settings') {
-                  const pwd = window.prompt('กรุณาใส่รหัสผ่านเพื่อเข้าสู่เมนูตั้งค่า:');
-                  if (pwd === '14709') {
-                    setView('settings');
-                  } else if (pwd !== null) {
-                    showModal('รหัสผ่านไม่ถูกต้อง', 'คุณไม่มีสิทธิ์เข้าถึงเมนูนี้', 'error');
-                  }
-                }
-              }}
-            >
-              <Settings size={20} />
-              ตั้งค่าระบบ
-            </li>
           </ul>
 
           <div className="sidebar-footer">
@@ -376,60 +351,6 @@ export default function App() {
             />
           )}
 
-          {view === 'settings' && (
-            <div className="card">
-              <h3 className="card-title">
-                <Settings className="logo-icon" /> กำหนดค่า Google Web App URL
-              </h3>
-              
-              <form onSubmit={handleSaveSettings}>
-                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                  <label htmlFor="scriptUrl">Google Apps Script Web App URL</label>
-                  <input
-                    type="url"
-                    id="scriptUrl"
-                    placeholder="https://script.google.com/macros/s/.../exec"
-                    value={tempUrl}
-                    onChange={(e) => setTempUrl(e.target.value)}
-                    style={{ width: '100%' }}
-                  />
-                  <small style={{ color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    *ลิงก์นี้จะได้จากการนำโค้ดในไฟล์ <strong>google-apps-script.js</strong> ไปติดตั้งในส่วนขยาย Apps Script บน Google Sheets
-                  </small>
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button type="submit" className="btn btn-primary">บันทึกการตั้งค่า</button>
-                  {scriptUrl && (
-                    <button type="button" className="btn btn-outline" onClick={() => fetchData()}>
-                      ทดสอบเชื่อมต่อใหม่
-                    </button>
-                  )}
-                </div>
-              </form>
-
-              <hr style={{ margin: '2.5rem 0', borderColor: 'var(--border-color)', borderWidth: '0.5px' }} />
-
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>
-                <HelpCircle size={18} /> วิธีการเชื่อมโยงระบบกับ Google Sheets
-              </h4>
-              
-              <ol style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.95rem' }}>
-                <li>สร้าง Google Sheet ขึ้นมาใหม่ 1 ไฟล์</li>
-                <li>ไปที่แถบเมนูด้านบน เลือก <strong>ส่วนขยาย (Extensions)</strong> &gt; <strong>Apps Script</strong></li>
-                <li>นำโค้ดจากไฟล์ <code>google-apps-script.js</code> ในโปรเจกต์นี้ไปวางแทนที่โค้ดเดิมทั้งหมดในไฟล์ Code.gs</li>
-                <li>กดปุ่มบันทึก (แผ่นดิสก์) จากนั้นกดปุ่ม <strong>การทำให้ใช้งานได้ (Deploy)</strong> ด้านขวาบน &gt; <strong>การทำให้ใช้งานได้ใหม่ (New deployment)</strong></li>
-                <li>เลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong></li>
-                <li>ตั้งค่ารายละเอียด:
-                  <ul style={{ paddingLeft: '1.5rem', marginTop: '0.25rem', listStyleType: 'circle' }}>
-                    <li>การกำหนดค่าผู้ใช้: เลือก <strong>"ฉัน" (Me)</strong></li>
-                    <li>ผู้มีสิทธิ์เข้าถึง: เลือก <strong>"ทุกคน" (Anyone)</strong></li>
-                  </ul>
-                </li>
-                <li>กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> จากนั้นอนุญาตสิทธิ์เข้าถึง และคัดลอกลิงก์ <strong>URL ของเว็บแอป (Web App URL)</strong> มาใส่ในช่องด้านบนนี้</li>
-              </ol>
-            </div>
-          )}
         </main>
       </div>
 
