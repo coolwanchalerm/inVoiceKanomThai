@@ -1,0 +1,105 @@
+import React from 'react';
+
+const THAI_MONTHS = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+];
+
+const formatThaiDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  
+  const day = date.getDate();
+  const month = THAI_MONTHS[date.getMonth()];
+  const yearBE = date.getFullYear() + 543; // Convert to Buddhist Era
+  
+  return `วันที่ ${day} ${month} ${yearBE}`;
+};
+
+export default function PrintLayout({ invoice, items = [] }) {
+  if (!invoice) return null;
+
+  // Pads the items table to always have at least 4 rows to match the PDF layout aesthetics
+  const minRows = 4;
+  const paddedItems = [...items];
+  while (paddedItems.length < minRows) {
+    paddedItems.push({
+      id: `empty-${paddedItems.length}`,
+      description: '',
+      quantity: '',
+      unitPrice: '',
+      amount: ''
+    });
+  }
+
+  return (
+    <div className="print-only-container">
+      <div className="invoice-box">
+        {/* Main Header Table */}
+        <table className="invoice-header-table">
+          <tbody>
+            <tr>
+              <td>
+                <div className="invoice-header-title">ร้านขนมไทยแทนคุณ</div>
+                <div className="invoice-header-subtitle">0804628068 , 0831641982</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Customer & Date Info Box */}
+        <div className="customer-info-box">
+          <div className="customer-info-left">
+            <div className="customer-title">ชื่อลูกค้า</div>
+            <div className="customer-name">{invoice.customerName || ''}</div>
+          </div>
+          <div className="customer-info-right">
+            {formatThaiDate(invoice.date)}
+          </div>
+        </div>
+
+        {/* Invoice Items Table */}
+        <table className="invoice-items-table">
+          <thead>
+            <tr>
+              <th className="col-qty">จำนวน</th>
+              <th className="col-desc">รายการ</th>
+              <th className="col-price">หน่วยละ</th>
+              <th className="col-amount">จำนวนเงิน</th>
+            </tr>
+            <tr className="sub-header-row">
+              <th className="col-qty">Quantity</th>
+              <th className="col-desc">Description</th>
+              <th className="col-price">Unit Price</th>
+              <th className="col-amount">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paddedItems.map((item, index) => {
+              const isEmpty = item.description === '';
+              return (
+                <tr key={item.id || index} className={isEmpty ? 'empty-row' : ''}>
+                  <td className="col-qty">{item.quantity}</td>
+                  <td className="col-desc">{item.description}</td>
+                  <td className="col-price">
+                    {isEmpty ? '' : Number(item.unitPrice).toLocaleString()}
+                  </td>
+                  <td className="col-amount">
+                    {isEmpty ? '' : Number(item.amount).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Total Row */}
+            <tr>
+              <td colSpan="2" className="total-row-label">รวมเงิน</td>
+              <td></td>
+              <td className="total-row-val">{Number(invoice.totalAmount).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
