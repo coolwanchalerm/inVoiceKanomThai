@@ -243,7 +243,7 @@ export default function App() {
         {/* Sidebar */}
         <aside className="sidebar">
           <div className="logo-section">
-            <Receipt className="logo-icon" />
+            <img src="/logo.jpg" alt="โลโก้ร้าน" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
             <span className="logo-text">ขนมไทยแทนคุณ</span>
           </div>
 

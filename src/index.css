@@ -517,7 +517,8 @@ input:focus, select:focus {
 
   .total-row-label {
     font-weight: bold;
-    text-align: center !important;
+    text-align: right !important;
+    padding-right: 20px !important;
   }
 
   .total-row-val {
