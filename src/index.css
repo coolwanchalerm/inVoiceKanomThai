@@ -390,6 +390,10 @@ input:focus, select:focus {
 }
 
 @media print {
+  @page {
+    size: A5;
+    margin: 10mm;
+  }
   body {
     background-color: #ffffff;
     color: #000000;

@@ -183,6 +183,7 @@ function saveInvoicePDFToDrive(invoice, items) {
         <head>
           <link href="https://fonts.googleapis.com/css?family=Sarabun:300,400,500,600,700&subset=thai" rel="stylesheet">
           <style>
+            @page { size: A5; margin: 10mm; }
             * { font-family: 'Sarabun', 'TH SarabunPSK', 'TH Sarabun New', Tahoma, sans-serif !important; }
             body { padding: 0; margin: 0; color: #000; font-size: 14px; }
             .invoice-card { max-width: 800px; margin: 0 auto; }
