@@ -169,6 +169,17 @@ export default function App() {
     }, 500);
   };
 
+  const handlePrintInvoice = (invoiceId) => {
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (!invoice) return;
+    const invoiceItems = items.filter(item => item.invoiceId === invoiceId);
+    setPrintInvoice(invoice);
+    setPrintItems(invoiceItems);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
+
   const handleDeleteInvoice = (invoiceId) => {
     showModal(
       'ยืนยันการลบใบเสร็จ',
@@ -334,6 +345,7 @@ export default function App() {
             <InvoiceHistory 
               invoices={invoices} 
               onDelete={handleDeleteInvoice}
+              onPrint={handlePrintInvoice}
             />
           )}
 

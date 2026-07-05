@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 
-export default function InvoiceHistory({ invoices = [], onDelete }) {
+export default function InvoiceHistory({ invoices = [], onDelete, onPrint }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -85,16 +85,26 @@ export default function InvoiceHistory({ invoices = [], onDelete }) {
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center' }}>
+                      <button 
+                        className="btn btn-primary" 
+                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', gap: '0.3rem', display: 'inline-flex', alignItems: 'center', minHeight: 'unset' }}
+                        onClick={() => onPrint && onPrint(inv.id)}
+                        title="พิมพ์ใบเสร็จ"
+                      >
+                        <Printer size={16} />
+                        พิมพ์
+                      </button>
+
                       {inv.pdfUrl ? (
                         <a 
                           href={inv.pdfUrl} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="btn btn-outline" 
-                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', gap: '0.3rem', display: 'inline-flex', minHeight: 'unset' }}
+                          style={{ padding: '0.3rem 0.6rem', color: 'var(--text-main)', borderColor: 'transparent', minHeight: 'unset' }}
+                          title="เปิดไฟล์ PDF"
                         >
-                          <ExternalLink size={12} />
-                          เปิดไฟล์ PDF
+                          <ExternalLink size={16} />
                         </a>
                       ) : (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>-</span>
