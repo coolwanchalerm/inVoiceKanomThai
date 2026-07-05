@@ -287,7 +287,16 @@ export default function App() {
             </li>
             <li 
               className={`menu-item ${view === 'settings' ? 'active' : ''}`}
-              onClick={() => setView('settings')}
+              onClick={() => {
+                if (view !== 'settings') {
+                  const pwd = window.prompt('กรุณาใส่รหัสผ่านเพื่อเข้าสู่เมนูตั้งค่า:');
+                  if (pwd === '14709') {
+                    setView('settings');
+                  } else if (pwd !== null) {
+                    showModal('รหัสผ่านไม่ถูกต้อง', 'คุณไม่มีสิทธิ์เข้าถึงเมนูนี้', 'error');
+                  }
+                }
+              }}
             >
               <Settings size={20} />
               ตั้งค่าระบบ
