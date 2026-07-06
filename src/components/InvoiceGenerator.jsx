@@ -109,7 +109,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
             <input
               type="text"
               id="customerName"
-              placeholder="เช่น บริษัท วี.สถาปัตย์ จำกัด"
+              placeholder="ร้านขนมไทยแทนคุณ"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               required
