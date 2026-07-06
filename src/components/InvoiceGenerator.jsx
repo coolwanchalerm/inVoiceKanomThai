@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle } from 'lucide-react';
+import { getThaiBahtText } from '../utils/thaiBaht';
 
 export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products = [], topProducts = [] }) {
   const [customerName, setCustomerName] = useState('');
@@ -13,6 +14,8 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
   };
 
   const [date, setDate] = useState(getTodayThaiDate());
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerTaxId, setCustomerTaxId] = useState('');
   const [items, setItems] = useState([]);
 
   const [newItem, setNewItem] = useState({ description: '', quantity: 1, unitPrice: 0 });
@@ -82,9 +85,12 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
 
     const invoiceData = {
       id: uniqueId,
-      date: date,
-      customerName: customerName,
-      totalAmount: totalAmount
+      customerName,
+      customerAddress,
+      customerTaxId,
+      date,
+      totalAmount,
+      totalAmountText: getThaiBahtText(totalAmount)
     };
 
     onSubmitInvoice(invoiceData, items);
@@ -103,10 +109,32 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
             <input
               type="text"
               id="customerName"
-              placeholder="เช่น นายวันเฉลิม โสตะวงค์"
+              placeholder="เช่น บริษัท วี.สถาปัตย์ จำกัด"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="customerAddress">ที่อยู่ลูกค้า</label>
+            <input
+              type="text"
+              id="customerAddress"
+              placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..."
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</label>
+            <input
+              type="text"
+              id="customerTaxId"
+              placeholder="เช่น 0123456789012"
+              value={customerTaxId}
+              onChange={(e) => setCustomerTaxId(e.target.value)}
             />
           </div>
 

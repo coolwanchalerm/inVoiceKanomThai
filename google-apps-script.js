@@ -127,6 +127,13 @@ function setupSheets(ss) {
     var headers = invoicesSheet.getRange(1, 1, 1, invoicesSheet.getLastColumn()).getValues()[0];
     if (headers.indexOf('PDF URL') === -1) {
       invoicesSheet.getRange(1, invoicesSheet.getLastColumn() + 1).setValue('PDF URL').setFontWeight("bold");
+      headers.push('PDF URL');
+    }
+    if (headers.indexOf('Customer Address') === -1) {
+      invoicesSheet.getRange(1, invoicesSheet.getLastColumn() + 1).setValue('Customer Address').setFontWeight("bold");
+    }
+    if (headers.indexOf('Customer Tax ID') === -1) {
+      invoicesSheet.getRange(1, invoicesSheet.getLastColumn() + 1).setValue('Customer Tax ID').setFontWeight("bold");
     }
   }
 
@@ -237,8 +244,12 @@ function saveInvoicePDFToDrive(invoice, items) {
                 <td class="info-left">
                   <div class="info-label">ชื่อลูกค้า</div>
                   <div class="customer-name">${invoice.customerName}</div>
+                  ${invoice.customerAddress ? `<div class="customer-address" style="font-size: 14px; text-align: center; margin-top: 5px; padding: 0 10px;">${invoice.customerAddress}</div>` : ''}
                 </td>
-                <td class="info-right">${formattedDate}</td>
+                <td class="info-right" style="flex-direction: column; gap: 8px;">
+                  <div style="font-size: 16px; font-weight: bold;">${formattedDate}</div>
+                  ${invoice.customerTaxId ? `<div style="font-size: 14px; font-weight: normal;">เลขประจำตัวผู้เสียภาษี<br/>${invoice.customerTaxId}</div>` : ''}
+                </td>
               </tr>
             </table>
 
@@ -286,11 +297,16 @@ function saveInvoicePDFToDrive(invoice, items) {
 
     htmlContent += `
                 <tr>
-                  <td colspan="3" class="total-label">รวมเงิน</td>
+                  <td colspan="2" style="text-align: center; font-weight: bold;">${invoice.totalAmountText || ''}</td>
+                  <td class="total-label">รวมเงิน</td>
                   <td class="col-amount total-val">${Number(invoice.totalAmount).toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
+
+            <div style="margin-top: 50px; text-align: right; padding-right: 20px;">
+              <div style="font-size: 16px;">ผู้รับเงิน........................................................</div>
+            </div>
           </div>
         </body>
       </html>
@@ -332,7 +348,9 @@ function createInvoice(ss, invoice, items) {
     invoice.customerName,
     invoice.totalAmount,
     new Date(),
-    pdfUrl
+    pdfUrl,
+    invoice.customerAddress || "",
+    invoice.customerTaxId || ""
   ]);
 
   // 3. Save each item to InvoiceItems sheet
@@ -372,7 +390,9 @@ function fetchSalesData(ss) {
         customerName: invoiceRows[i][2],
         totalAmount: Number(invoiceRows[i][3]),
         timestamp: invoiceRows[i][4],
-        pdfUrl: invoiceRows[i][5] || ""
+        pdfUrl: invoiceRows[i][5] || "",
+        customerAddress: invoiceRows[i][6] || "",
+        customerTaxId: invoiceRows[i][7] || ""
       });
     }
   }

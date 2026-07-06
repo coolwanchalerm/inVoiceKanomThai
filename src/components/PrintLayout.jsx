@@ -1,4 +1,5 @@
 import React from 'react';
+import { getThaiBahtText } from '../utils/thaiBaht';
 
 const THAI_MONTHS = [
   'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
@@ -59,9 +60,17 @@ export default function PrintLayout({ invoice, items = [] }) {
           <div className="customer-info-left">
             <div className="customer-title">ชื่อลูกค้า</div>
             <div className="customer-name">{invoice.customerName || ''}</div>
+            {invoice.customerAddress && (
+              <div className="customer-address" style={{ fontSize: '14px', textAlign: 'center', marginTop: '5px', padding: '0 10px' }}>
+                {invoice.customerAddress}
+              </div>
+            )}
           </div>
-          <div className="customer-info-right">
-            {formatThaiDate(invoice.date)}
+          <div className="customer-info-right" style={{ flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{formatThaiDate(invoice.date)}</div>
+            {invoice.customerTaxId && (
+              <div style={{ fontSize: '14px', fontWeight: 'normal' }}>เลขประจำตัวผู้เสียภาษี<br/>{invoice.customerTaxId}</div>
+            )}
           </div>
         </div>
 
@@ -99,11 +108,19 @@ export default function PrintLayout({ invoice, items = [] }) {
             })}
             {/* Total Row */}
             <tr>
-              <td colSpan="3" className="total-row-label">รวมเงิน</td>
+              <td colSpan="2" style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                {getThaiBahtText(invoice.totalAmount)}
+              </td>
+              <td className="total-row-label">รวมเงิน</td>
               <td className="total-row-val">{Number(invoice.totalAmount).toLocaleString()}</td>
             </tr>
           </tbody>
         </table>
+
+        {/* Signature Line */}
+        <div style={{ marginTop: '50px', textAlign: 'right', paddingRight: '20px' }}>
+          <div style={{ fontSize: '16px' }}>ผู้รับเงิน........................................................</div>
+        </div>
       </div>
     </div>
   );
