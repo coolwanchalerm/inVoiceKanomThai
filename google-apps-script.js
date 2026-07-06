@@ -189,7 +189,7 @@ function saveInvoicePDFToDrive(invoice, items) {
             .invoice-card { max-width: 800px; margin: 0 auto; }
             
             .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .header-table td { border: 1px solid #000; padding: 15px; text-align: center; }
+            .header-table td { border: none; padding: 15px; text-align: center; }
             .store-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
             .store-phone { font-size: 14px; }
             
