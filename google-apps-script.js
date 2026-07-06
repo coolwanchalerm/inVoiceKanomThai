@@ -201,6 +201,7 @@ function saveInvoicePDFToDrive(invoice, items) {
             
             .items-table { width: 100%; border-collapse: collapse; }
             .items-table th, .items-table td { border: 1px solid #000; padding: 12px; text-align: center; }
+            .items-table td { font-size: 12px; }
             .items-table th { font-weight: bold; font-size: 14px; }
             .sub-th { font-weight: normal; font-size: 12px; }
             

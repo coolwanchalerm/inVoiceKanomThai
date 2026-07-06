@@ -494,6 +494,10 @@ input:focus, select:focus {
     padding: 12px;
     text-align: center;
   }
+  
+  .invoice-items-table td {
+    font-size: 12px;
+  }
 
   /* Header styles */
   .invoice-items-table th {
