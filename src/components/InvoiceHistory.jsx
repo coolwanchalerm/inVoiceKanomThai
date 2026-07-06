@@ -7,11 +7,20 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint }) {
   const itemsPerPage = 10;
 
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(inv => {
+    const result = invoices.filter(inv => {
       const name = (inv.customerName || '').toLowerCase();
       const id = (inv.id || '').toLowerCase();
       const q = searchTerm.toLowerCase();
       return name.includes(q) || id.includes(q);
+    });
+
+    return result.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (!isNaN(dateA) && !isNaN(dateB)) {
+        return dateB - dateA;
+      }
+      return (b.id || '').localeCompare(a.id || '');
     });
   }, [invoices, searchTerm]);
 
