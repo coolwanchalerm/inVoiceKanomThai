@@ -99,6 +99,8 @@ function handleRequest(e) {
       return createInvoice(ss, data.invoice, data.items);
     } else if (action === 'deleteInvoice' && data) {
       return deleteInvoice(ss, data.invoiceId);
+    } else if (action === 'togglePrintStatus' && data) {
+      return togglePrintStatus(ss, data.invoiceId, data.printedStatus);
     } else if (action === 'manageProduct' && data) {
       return manageProduct(ss, data.subAction, data.product);
     } else if (action === 'fetchData' || method === 'GET') {
@@ -134,6 +136,9 @@ function setupSheets(ss) {
     }
     if (headers.indexOf('Customer Tax ID') === -1) {
       invoicesSheet.getRange(1, invoicesSheet.getLastColumn() + 1).setValue('Customer Tax ID').setFontWeight("bold");
+    }
+    if (headers.indexOf('Printed Status') === -1) {
+      invoicesSheet.getRange(1, invoicesSheet.getLastColumn() + 1).setValue('Printed Status').setFontWeight("bold");
     }
   }
 
@@ -350,7 +355,8 @@ function createInvoice(ss, invoice, items) {
     new Date(),
     pdfUrl,
     invoice.customerAddress || "",
-    invoice.customerTaxId || ""
+    invoice.customerTaxId || "",
+    false
   ]);
 
   // 3. Save each item to InvoiceItems sheet
@@ -392,7 +398,8 @@ function fetchSalesData(ss) {
         timestamp: invoiceRows[i][4],
         pdfUrl: invoiceRows[i][5] || "",
         customerAddress: invoiceRows[i][6] || "",
-        customerTaxId: invoiceRows[i][7] || ""
+        customerTaxId: invoiceRows[i][7] || "",
+        printedStatus: invoiceRows[i][8] === true || invoiceRows[i][8] === 'true'
       });
     }
   }
@@ -472,6 +479,35 @@ function deleteInvoice(ss, invoiceId) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Invoice deleted successfully' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function togglePrintStatus(ss, invoiceId, printedStatus) {
+  if (!invoiceId) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Missing invoiceId' })).setMimeType(ContentService.MimeType.JSON);
+  }
+  try {
+    var invoiceSheet = ss.getSheetByName('Invoices');
+    if (invoiceSheet) {
+      var invoiceData = invoiceSheet.getDataRange().getValues();
+      var headers = invoiceData[0];
+      var statusColIdx = headers.indexOf('Printed Status');
+      
+      if (statusColIdx === -1) {
+        statusColIdx = invoiceSheet.getLastColumn();
+        invoiceSheet.getRange(1, statusColIdx + 1).setValue('Printed Status').setFontWeight("bold");
+      }
+      
+      for (var i = 1; i < invoiceData.length; i++) {
+        if (invoiceData[i][0] === invoiceId) {
+          invoiceSheet.getRange(i + 1, statusColIdx + 1).setValue(printedStatus);
+          break;
+        }
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 

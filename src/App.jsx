@@ -229,6 +229,35 @@ export default function App() {
     );
   };
 
+  const handleTogglePrintStatus = async (invoiceId, currentStatus) => {
+    if (!scriptUrl) return;
+    const newStatus = !currentStatus;
+    
+    // Optimistic UI update
+    setDbInvoices(prev => prev.map(inv => 
+      inv.id === invoiceId ? { ...inv, printedStatus: newStatus } : inv
+    ));
+
+    try {
+      const payload = { action: 'togglePrintStatus', invoiceId, printedStatus: newStatus };
+      const response = await fetch(`${scriptUrl}?method=GET&action=togglePrintStatus&data=${encodeURIComponent(JSON.stringify(payload))}`);
+      const data = await response.json();
+      if (data.status !== 'success') {
+        // Revert on error
+        setDbInvoices(prev => prev.map(inv => 
+          inv.id === invoiceId ? { ...inv, printedStatus: currentStatus } : inv
+        ));
+        console.error('Failed to toggle print status:', data.message);
+      }
+    } catch (err) {
+      // Revert on error
+      setDbInvoices(prev => prev.map(inv => 
+        inv.id === invoiceId ? { ...inv, printedStatus: currentStatus } : inv
+      ));
+      console.error('Error toggling print status:', err);
+    }
+  };
+
   const handleCopyCode = () => {
     navigator.clipboard.writeText(`// คัดลอกโค้ดจาก google-apps-script.js ไปวางใน Apps Script`);
     setCopied(true);
@@ -346,6 +375,7 @@ export default function App() {
               invoices={invoices} 
               onDelete={handleDeleteInvoice}
               onPrint={handlePrintInvoice}
+              onTogglePrint={handleTogglePrintStatus}
             />
           )}
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
 
-export default function InvoiceHistory({ invoices = [], onDelete, onPrint }) {
+export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -64,13 +64,14 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint }) {
               <th>วันที่ออก</th>
               <th>ชื่อลูกค้า</th>
               <th style={{ textAlign: 'right' }}>ยอดเงินสุทธิ</th>
-              <th style={{ textAlign: 'center' }}>ลิงก์ PDF (Google Drive)</th>
+              <th style={{ textAlign: 'center' }}>สถานะ</th>
+              <th style={{ textAlign: 'center' }}>จัดการ</th>
             </tr>
           </thead>
           <tbody>
             {filteredInvoices.length === 0 ? (
               <tr>
-                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
+                <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
                   ไม่พบข้อมูลประวัติใบเสร็จในระบบ
                 </td>
               </tr>
@@ -91,6 +92,19 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint }) {
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 'bold', fontFamily: 'var(--font-eng)', fontSize: '1.05rem', color: 'var(--primary-color)' }}>
                     {inv.totalAmount ? inv.totalAmount.toLocaleString() : 0} ฿
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem', userSelect: 'none' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={inv.printedStatus || false} 
+                        onChange={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--success, #198754)' }}
+                      />
+                      <span style={{ fontSize: '0.85rem', color: inv.printedStatus ? 'var(--success, #198754)' : 'var(--text-muted)', fontWeight: inv.printedStatus ? '600' : 'normal' }}>
+                        {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
+                      </span>
+                    </label>
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center' }}>
