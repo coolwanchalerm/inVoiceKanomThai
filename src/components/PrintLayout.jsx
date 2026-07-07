@@ -46,7 +46,7 @@ export default function PrintLayout({ invoice, items = [] }) {
                   <img src="/logo.jpg" alt="โลโก้" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
                   <div style={{ textAlign: 'left' }}>
                     <div className="invoice-header-title" style={{ fontWeight: 'bold' }}>ร้านขนมไทยแทนคุณ</div>
-                    <div className="invoice-header-subtitle">695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร</div>
+                    <div className="invoice-header-subtitle">695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร 47000</div>
                     <div className="invoice-header-subtitle">เบอร์โทรศัพท์ 083-1641982 , 080-4628068</div>
                   </div>
                 </div>

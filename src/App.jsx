@@ -133,7 +133,7 @@ export default function App() {
 
     // 3. Attempt to save to Google Apps Script if URL is configured
     if (scriptUrl) {
-      setLoadingMessage('กำลังบันทึกและสร้าง PDF ลงระบบ...');
+      setLoadingMessage('กำลังบันทึกลงระบบ...');
       setIsOverlayLoading(true);
       try {
         const payload = { invoice: invoice, items: invoiceItems };
@@ -142,15 +142,7 @@ export default function App() {
         
         setIsOverlayLoading(false);
         
-        if (data.status === 'success' && data.pdfUrl) {
-          // Update the locally stored invoice with the actual pdfUrl returned from Google Drive
-          const updatedLocalInvoices = newLocalInvoices.map(inv => {
-            if (inv.id === invoice.id) return { ...inv, pdfUrl: data.pdfUrl };
-            return inv;
-          });
-          localStorage.setItem('invoices', JSON.stringify(updatedLocalInvoices));
-          setLocalInvoices(updatedLocalInvoices);
-        } else if (data.status === 'error') {
+        if (data.status === 'error') {
           showModal('เกิดข้อผิดพลาดจากฝั่ง Google', data.message, 'error');
         }
         

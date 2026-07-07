@@ -3,15 +3,45 @@ import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRi
 
 export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterYear, setFilterYear] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const availableYears = useMemo(() => {
+    const years = new Set(invoices.map(inv => inv.date ? inv.date.split('-')[0] : null).filter(Boolean));
+    return Array.from(years).sort().reverse();
+  }, [invoices]);
+
+  const months = [
+    { value: '01', label: 'มกราคม' },
+    { value: '02', label: 'กุมภาพันธ์' },
+    { value: '03', label: 'มีนาคม' },
+    { value: '04', label: 'เมษายน' },
+    { value: '05', label: 'พฤษภาคม' },
+    { value: '06', label: 'มิถุนายน' },
+    { value: '07', label: 'กรกฎาคม' },
+    { value: '08', label: 'สิงหาคม' },
+    { value: '09', label: 'กันยายน' },
+    { value: '10', label: 'ตุลาคม' },
+    { value: '11', label: 'พฤศจิกายน' },
+    { value: '12', label: 'ธันวาคม' },
+  ];
 
   const filteredInvoices = useMemo(() => {
     const result = invoices.filter(inv => {
       const name = (inv.customerName || '').toLowerCase();
       const id = (inv.id || '').toLowerCase();
       const q = searchTerm.toLowerCase();
-      return name.includes(q) || id.includes(q);
+      
+      let dateMatch = true;
+      if (inv.date) {
+        const [year, month] = inv.date.split('-');
+        if (filterYear !== 'all' && year !== filterYear) dateMatch = false;
+        if (filterMonth !== 'all' && month !== filterMonth) dateMatch = false;
+      }
+      
+      return (name.includes(q) || id.includes(q)) && dateMatch;
     });
 
     return result.sort((a, b) => {
@@ -22,14 +52,14 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
       }
       return (b.id || '').localeCompare(a.id || '');
     });
-  }, [invoices, searchTerm]);
+  }, [invoices, searchTerm, filterYear, filterMonth]);
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   
-  // Reset to page 1 when searching
+  // Reset to page 1 when searching or filtering
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, filterYear, filterMonth]);
 
   const paginatedInvoices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -43,16 +73,36 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           <Receipt className="logo-icon" /> รายการใบเสร็จทั้งหมด
         </h3>
         
-        {/* Search Box */}
-        <div style={{ position: 'relative', width: '300px' }}>
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อลูกค้า หรือเลขที่ใบเสร็จ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', paddingLeft: '2.5rem' }}
-          />
-          <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Filters */}
+          <select 
+            value={filterMonth} 
+            onChange={e => setFilterMonth(e.target.value)}
+            style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-main)', outline: 'none' }}
+          >
+            <option value="all">ทุกเดือน</option>
+            {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+          </select>
+          <select 
+            value={filterYear} 
+            onChange={e => setFilterYear(e.target.value)}
+            style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-main)', outline: 'none' }}
+          >
+            <option value="all">ทุกปี</option>
+            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: '250px' }}>
+            <input
+              type="text"
+              placeholder="ค้นหาชื่อลูกค้า หรือเลขที่ใบเสร็จ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', paddingLeft: '2.5rem' }}
+            />
+            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          </div>
         </div>
       </div>
 
@@ -118,20 +168,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                         พิมพ์
                       </button>
 
-                      {inv.pdfUrl ? (
-                        <a 
-                          href={inv.pdfUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="btn btn-outline" 
-                          style={{ padding: '0.3rem 0.6rem', color: 'var(--text-main)', borderColor: 'transparent', minHeight: 'unset' }}
-                          title="เปิดไฟล์ PDF"
-                        >
-                          <ExternalLink size={16} />
-                        </a>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>-</span>
-                      )}
+
                       
                       <button 
                         className="btn btn-outline" 
