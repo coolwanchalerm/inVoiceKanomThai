@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Receipt, Loader2, History, Package } from 'lucide-react';
+import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
@@ -324,28 +324,24 @@ export default function App() {
                 {view === 'dashboard' && 'แดชบอร์ด & สรุปยอดขาย'}
                 {view === 'products' && 'จัดการสินค้า'}
               </h1>
-              <p className="page-subtitle">
-                {view === 'generator' && 'กรอกรายละเอียดเพื่อออกใบเสร็จและบันทึกข้อมูลลงฐานข้อมูล Supabase'}
-                {view === 'history' && 'ค้นหาและตรวจสอบใบเสร็จทั้งหมดที่บันทึกเข้าระบบ'}
-                {view === 'dashboard' && 'วิเคราะห์ยอดขายและดูสินค้าขายดีประจำร้าน'}
-                {view === 'products' && 'เพิ่มหรือลบสินค้าที่ใช้บ่อย'}
-              </p>
             </div>
 
-            {/* Sync Status Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: syncStatus === 'success' ? '#d1e7dd' : '#f8d7da', color: syncStatus === 'success' ? '#0f5132' : '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
-              {loading ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>กำลังดึงข้อมูลฐานข้อมูล...</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: syncStatus === 'success' ? '#198754' : '#dc3545' }}></span>
-                  <span>{syncStatus === 'success' ? 'เชื่อมต่อ Supabase แล้ว' : 'การเชื่อมต่อผิดพลาด'}</span>
-                </>
-              )}
-            </div>
+            {/* Sync Status Badge - Show only on loading or error */}
+            {(loading || syncStatus !== 'success') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: '#f8d7da', color: '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
+                {loading ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>กำลังดึงข้อมูลฐานข้อมูล...</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc3545' }}></span>
+                    <span>การเชื่อมต่อผิดพลาด</span>
+                  </>
+                )}
+              </div>
+            )}
           </header>
 
           {/* Main Views */}
@@ -382,6 +378,50 @@ export default function App() {
           )}
 
         </main>
+        
+        {/* Bottom Navigation for Mobile */}
+        <nav className="bottom-nav">
+          <button 
+            className={`bottom-nav-item ${view === 'generator' ? 'active' : ''}`}
+            onClick={() => setView('generator')}
+          >
+            <Home className="icon" />
+            <span>หน้าหลัก</span>
+          </button>
+          
+          <button 
+            className={`bottom-nav-item ${view === 'products' ? 'active' : ''}`}
+            onClick={() => setView('products')}
+          >
+            <Package className="icon" />
+            <span>สินค้า</span>
+          </button>
+
+          <div className="bottom-nav-fab-wrapper">
+            <button 
+              className="bottom-nav-fab"
+              onClick={() => setView('generator')}
+            >
+              <Plus className="icon" />
+            </button>
+          </div>
+
+          <button 
+            className={`bottom-nav-item ${view === 'history' ? 'active' : ''}`}
+            onClick={() => setView('history')}
+          >
+            <History className="icon" />
+            <span>ประวัติ</span>
+          </button>
+
+          <button 
+            className={`bottom-nav-item ${view === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setView('dashboard')}
+          >
+            <LayoutDashboard className="icon" />
+            <span>สถิติ</span>
+          </button>
+        </nav>
       </div>
 
       {/* Hidden Print Layout (Activated on window.print()) */}

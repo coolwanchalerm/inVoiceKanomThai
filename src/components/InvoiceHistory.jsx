@@ -5,6 +5,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'printed', 'unprinted'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -41,7 +42,11 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
         if (filterMonth !== 'all' && month !== filterMonth) dateMatch = false;
       }
       
-      return (name.includes(q) || id.includes(q)) && dateMatch;
+      let statusMatch = true;
+      if (filterStatus === 'printed' && !inv.printedStatus) statusMatch = false;
+      if (filterStatus === 'unprinted' && inv.printedStatus) statusMatch = false;
+      
+      return (name.includes(q) || id.includes(q)) && dateMatch && statusMatch;
     });
 
     return result.sort((a, b) => {
@@ -52,14 +57,14 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
       }
       return (b.id || '').localeCompare(a.id || '');
     });
-  }, [invoices, searchTerm, filterYear, filterMonth]);
+  }, [invoices, searchTerm, filterYear, filterMonth, filterStatus]);
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   
   // Reset to page 1 when searching or filtering
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterYear, filterMonth]);
+  }, [searchTerm, filterYear, filterMonth, filterStatus]);
 
   const paginatedInvoices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -67,18 +72,37 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
   }, [filteredInvoices, currentPage]);
 
   return (
-    <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-        <h3 className="card-title" style={{ marginBottom: 0 }}>
-          <Receipt className="logo-icon" /> รายการใบเสร็จทั้งหมด
-        </h3>
+    <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
+      {/* Header and Filter row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Filters */}
+        {/* Segmented Control */}
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
+          <button 
+            onClick={() => setFilterStatus('all')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'all' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'all' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
+          >
+            ทั้งหมด
+          </button>
+          <button 
+            onClick={() => setFilterStatus('printed')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'printed' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'printed' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
+          >
+            พิมพ์แล้ว
+          </button>
+          <button 
+            onClick={() => setFilterStatus('unprinted')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'unprinted' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'unprinted' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
+          >
+            ยังไม่พิมพ์
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <select 
             value={filterMonth} 
             onChange={e => setFilterMonth(e.target.value)}
-            style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-main)', outline: 'none' }}
+            style={{ padding: '0.4rem 0.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: 'var(--primary-color)', outline: 'none', fontWeight: '500', fontSize: '0.85rem' }}
           >
             <option value="all">ทุกเดือน</option>
             {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -86,105 +110,128 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           <select 
             value={filterYear} 
             onChange={e => setFilterYear(e.target.value)}
-            style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-main)', outline: 'none' }}
+            style={{ padding: '0.4rem 0.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: 'var(--primary-color)', outline: 'none', fontWeight: '500', fontSize: '0.85rem' }}
           >
             <option value="all">ทุกปี</option>
             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-
-          {/* Search Box */}
-          <div style={{ position: 'relative', width: '250px' }}>
-            <input
-              type="text"
-              placeholder="ค้นหาชื่อลูกค้า หรือเลขที่ใบเสร็จ..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: '100%', paddingLeft: '2.5rem' }}
-            />
-            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          </div>
         </div>
       </div>
 
-      <div className="recent-table-wrapper">
-        <table className="recent-table">
-          <thead>
-            <tr>
-              <th>เลขที่ใบเสร็จ</th>
-              <th>วันที่ออก</th>
-              <th>ชื่อลูกค้า</th>
-              <th style={{ textAlign: 'right' }}>ยอดเงินสุทธิ</th>
-              <th style={{ textAlign: 'center' }}>สถานะ</th>
-              <th style={{ textAlign: 'center' }}>จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.length === 0 ? (
-              <tr>
-                <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
-                  ไม่พบข้อมูลประวัติใบเสร็จในระบบ
-                </td>
-              </tr>
-            ) : (
-              paginatedInvoices.map(inv => (
-                <tr key={inv.id}>
-                  <td style={{ fontFamily: 'var(--font-eng)', fontWeight: '600', color: 'var(--primary-color)' }}>
-                    {inv.id}
-                  </td>
-                  <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
-                      {inv.date ? new Date(inv.date).toLocaleDateString('th-TH') : '-'}
-                    </span>
-                  </td>
-                  <td>
-                    {inv.customerName}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 'bold', fontFamily: 'var(--font-eng)', fontSize: '1.05rem', color: 'var(--primary-color)' }}>
-                    {inv.totalAmount ? inv.totalAmount.toLocaleString() : 0} ฿
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer', gap: '0.4rem', userSelect: 'none' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={inv.printedStatus || false} 
-                        onChange={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
-                        style={{ width: '16px', height: '16px', accentColor: 'var(--success, #198754)' }}
-                      />
-                      <span style={{ fontSize: '0.85rem', color: inv.printedStatus ? 'var(--success, #198754)' : 'var(--text-muted)', fontWeight: inv.printedStatus ? '600' : 'normal' }}>
-                        {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
-                      </span>
-                    </label>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center' }}>
-                      <button 
-                        className="btn btn-primary" 
-                        style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', gap: '0.3rem', display: 'inline-flex', alignItems: 'center', minHeight: 'unset' }}
-                        onClick={() => onPrint && onPrint(inv.id)}
-                        title="พิมพ์ใบเสร็จ"
-                      >
-                        <Printer size={16} />
-                        พิมพ์
-                      </button>
+      {/* Search Box */}
+      <div style={{ position: 'relative', width: '100%', marginBottom: '1.5rem' }}>
+        <input
+          type="text"
+          placeholder="ค้นหาชื่อลูกค้า หรือเลขที่ใบเสร็จ..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: '100%', padding: '0.75rem', paddingLeft: '2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#fff' }}
+        />
+        <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+      </div>
 
+      {/* Invoice List (Cards) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+        {filteredInvoices.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 0' }}>
+            ไม่พบข้อมูลประวัติใบเสร็จในระบบ
+          </div>
+        ) : (
+          paginatedInvoices.map(inv => (
+            <div key={inv.id} style={{ 
+              backgroundColor: '#fff', 
+              padding: '1.25rem 0',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ebf2ef', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-color)', flexShrink: 0 }}>
+                  <Receipt size={20} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>{inv.customerName || 'ลูกค้าทั่วไป'}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>ใบเสร็จ {inv.id}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <button 
+                    onClick={() => onPrint && onPrint(inv.id)}
+                    title="พิมพ์ใบเสร็จ"
+                    style={{ 
+                      color: 'var(--primary-color)', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: '0.4rem', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      backgroundColor: '#ebf2ef'
+                    }}>
+                    <Printer size={18} />
+                  </button>
+                  <button 
+                    onClick={() => onDelete && onDelete(inv.id)}
+                    title="ลบใบเสร็จ"
+                    style={{ 
+                      color: '#ef4444', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: '0.4rem', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      backgroundColor: '#fef2f2'
+                    }}>
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
 
-                      
-                      <button 
-                        className="btn btn-outline" 
-                        style={{ padding: '0.3rem 0.6rem', color: 'var(--danger)', borderColor: 'transparent', minHeight: 'unset' }}
-                        onClick={() => onDelete && onDelete(inv.id)}
-                        title="ลบใบเสร็จ"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                ))
-            )}
-          </tbody>
-        </table>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginLeft: '56px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#475569' }}>
+                  เวลาสร้างรายการ: <span style={{ marginLeft: '4px' }}>{inv.date ? new Date(inv.date).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) : '-'}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginLeft: '56px' }}>
+                <div>
+                  <button 
+                    onClick={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                    style={{ 
+                      padding: '0.25rem 0.75rem', 
+                      borderRadius: '4px', 
+                      border: 'none',
+                      backgroundColor: inv.printedStatus ? '#dcfce7' : '#f1f5f9', 
+                      color: inv.printedStatus ? '#16a34a' : '#64748b', 
+                      fontSize: '0.8rem', 
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                    {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
+                  </button>
+                </div>
+                
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0f172a' }}>
+                    {inv.totalAmount ? Number(inv.totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                  </span>
+                  <span style={{ fontSize: '0.9rem', color: '#94a3b8', marginLeft: '4px' }}>บาท</span>
+                </div>
+              </div>
+
+            </div>
+          ))
+        )}
       </div>
 
       {totalPages > 1 && (
