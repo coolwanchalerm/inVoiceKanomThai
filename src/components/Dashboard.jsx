@@ -95,18 +95,35 @@ export default function Dashboard({ invoices = [], items = [] }) {
     })).slice(-10); // Show last 10 entries for filtered range
   }, [filteredData]);
 
-  // Aggregate items for distribution pie chart
-  const itemPieData = useMemo(() => {
-    const itemMap = {};
-    filteredData.items.forEach(item => {
-      itemMap[item.description] = (itemMap[item.description] || 0) + item.quantity;
+  // Aggregate monthly sales for comparison chart
+  const monthlySalesData = useMemo(() => {
+    const monthMap = {};
+    invoices.forEach(inv => {
+      if (!inv.date) return;
+      const dateObj = new Date(inv.date);
+      if (isNaN(dateObj.getTime())) return;
+      
+      const year = dateObj.getFullYear();
+      if (selectedYear !== 'all' && year.toString() !== selectedYear) return;
+      
+      const monthIdx = dateObj.getMonth();
+      const monthName = THAI_MONTH_NAMES[monthIdx];
+      const shortYear = (year + 543).toString().slice(-2);
+      const label = selectedYear === 'all' ? `${monthName.substring(0, 3)} ${shortYear}` : monthName;
+      
+      const sortKey = `${year}-${String(monthIdx).padStart(2, '0')}`;
+      
+      if (!monthMap[sortKey]) {
+        monthMap[sortKey] = { label, amount: 0 };
+      }
+      monthMap[sortKey].amount += (inv.totalAmount || 0);
     });
-
-    return Object.entries(itemMap).map(([name, value]) => ({
-      name,
-      value
-    })).sort((a, b) => b.value - a.value).slice(0, 5); // Top 5 items
-  }, [filteredData]);
+    
+    return Object.keys(monthMap).sort().map(key => ({
+      name: monthMap[key].label,
+      'ยอดขาย (บาท)': monthMap[key].amount
+    })).slice(-12);
+  }, [invoices, selectedYear]);
 
   return (
     <div>
@@ -236,34 +253,22 @@ export default function Dashboard({ invoices = [], items = [] }) {
           </div>
         </div>
 
-        {/* Item Distribution Pie Chart */}
+        {/* Monthly Sales Comparison Chart */}
         <div className="card" style={{ marginBottom: 0 }}>
-          <h3 className="card-title">สัดส่วนยอดขายขนม</h3>
+          <h3 className="card-title">เปรียบเทียบยอดขายรายเดือน</h3>
           <div style={{ width: '100%', height: '300px' }}>
-            {itemPieData.length === 0 ? (
+            {monthlySalesData.length === 0 ? (
               <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                ไม่มีข้อมูลสถิติขนมในช่วงเวลาที่เลือก
+                ไม่มีข้อมูลยอดขาย
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={itemPieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name.substring(0, 8)}... (${(percent * 100).toFixed(0)}%)`}
-                    style={{ fontSize: '10px', fontFamily: 'var(--font-thai)' }}
-                  >
-                    {itemPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ fontFamily: 'var(--font-thai)', borderRadius: 10 }} />
-                </PieChart>
+                <BarChart data={monthlySalesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontFamily: 'var(--font-thai)', fontSize: 11 }} />
+                  <YAxis tick={{ fontFamily: 'var(--font-eng)', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ fontFamily: 'var(--font-thai)', borderRadius: 10, border: '1px solid var(--border-color)' }} />
+                  <Bar dataKey="ยอดขาย (บาท)" fill="#c5a880" radius={[6, 6, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             )}
           </div>
