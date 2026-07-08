@@ -503,11 +503,16 @@ input:focus, select:focus, textarea:focus {
   .invoice-items-table th {
     font-weight: bold;
     font-size: 14px;
+    background-color: #f2f2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .sub-header-row th {
     font-size: 12px;
     font-weight: normal;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
   }
 
   .col-qty { width: 15%; }

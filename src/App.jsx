@@ -106,6 +106,20 @@ export default function App() {
     });
   }, [items, dbProducts]);
 
+  const uniqueCustomers = React.useMemo(() => {
+    const custMap = {};
+    invoices.forEach(inv => {
+      if (inv.customerName && !custMap[inv.customerName]) {
+        custMap[inv.customerName] = {
+          name: inv.customerName,
+          address: inv.customerAddress || '',
+          taxId: inv.customerTaxId || ''
+        };
+      }
+    });
+    return Object.values(custMap);
+  }, [invoices]);
+
   const handleManageProduct = async (subAction, product) => {
     setLoadingMessage('กำลังบันทึกข้อมูลสินค้า...');
     setIsOverlayLoading(true);
@@ -340,6 +354,7 @@ export default function App() {
               onSubmitInvoice={handleCreateInvoice} 
               products={dbProducts}
               topProducts={topProducts}
+              customers={uniqueCustomers}
             />
           )}
 

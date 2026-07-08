@@ -81,18 +81,22 @@ export default function Dashboard({ invoices = [], items = [] }) {
   const salesChartData = useMemo(() => {
     const dailyMap = {};
     filteredData.invoices.forEach(inv => {
-      let dStr = 'ไม่ระบุวันที่';
-      if (inv.date) {
-        const d = new Date(inv.date);
-        dStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+      const key = inv.date || 'unknown';
+      if (!dailyMap[key]) {
+        let dStr = 'ไม่ระบุวันที่';
+        if (inv.date) {
+          const d = new Date(inv.date);
+          dStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+        }
+        dailyMap[key] = { label: dStr, amount: 0 };
       }
-      dailyMap[dStr] = (dailyMap[dStr] || 0) + inv.totalAmount;
+      dailyMap[key].amount += (inv.totalAmount || 0);
     });
 
-    return Object.entries(dailyMap).map(([date, amount]) => ({
-      date,
-      'ยอดขาย (บาท)': amount
-    })).slice(-10); // Show last 10 entries for filtered range
+    return Object.keys(dailyMap).sort().map(key => ({
+      date: dailyMap[key].label,
+      'ยอดขาย (บาท)': dailyMap[key].amount
+    })).slice(-10); // Show last 10 entries
   }, [filteredData]);
 
   // Aggregate monthly sales for comparison chart

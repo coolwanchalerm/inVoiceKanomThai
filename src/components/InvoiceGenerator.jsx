@@ -2,8 +2,18 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
 
-export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [] }) {
+export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [], customers = [] }) {
   const [customerName, setCustomerName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Computed suggestions based on input
+  const filteredCustomers = React.useMemo(() => {
+    if (!customerName) return [];
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(customerName.toLowerCase()) && c.name !== customerName
+    );
+  }, [customerName, customers]);
+
   // Default date to current local Thai date format
   const getTodayThaiDate = () => {
     const today = new Date();
@@ -105,28 +115,63 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       <form onSubmit={handleSaveAndPrint}>
         <div className="form-grid">
           <div className="form-group">
+            <label htmlFor="invoiceDate">วันที่ออกใบเสร็จ</label>
+            <input
+              type="date"
+              id="invoiceDate"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group" style={{ position: 'relative' }}>
             <label htmlFor="customerName">ชื่อลูกค้า</label>
             <input
               type="text"
               id="customerName"
               placeholder="ร้านขนมไทยแทนคุณ"
               value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              onChange={(e) => {
+                setCustomerName(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               required
             />
+            {showSuggestions && filteredCustomers.length > 0 && (
+              <ul style={{
+                position: 'absolute', top: '100%', left: 0, right: 0,
+                backgroundColor: 'white', border: '1px solid var(--border-color)',
+                borderRadius: '8px', marginTop: '4px', padding: 0, listStyle: 'none',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '200px', overflowY: 'auto'
+              }}>
+                {filteredCustomers.map((cust, idx) => (
+                  <li 
+                    key={idx}
+                    style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: idx !== filteredCustomers.length - 1 ? '1px solid #eee' : 'none' }}
+                    onMouseDown={() => {
+                      setCustomerName(cust.name);
+                      setCustomerAddress(cust.address);
+                      setCustomerTaxId(cust.taxId);
+                      setShowSuggestions(false);
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{ fontWeight: '500', color: 'var(--text-main)' }}>{cust.name}</div>
+                    {(cust.address || cust.taxId) && (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {cust.address} {cust.taxId ? `(Tax ID: ${cust.taxId})` : ''}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="customerAddress">ที่อยู่ลูกค้า</label>
-            <textarea
-              id="customerAddress"
-              placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..."
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              rows="3"
-            />
-          </div>
-          
           <div className="form-group">
             <label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</label>
             <input
@@ -139,13 +184,13 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
           </div>
 
           <div className="form-group">
-            <label htmlFor="invoiceDate">วันที่ออกใบเสร็จ</label>
-            <input
-              type="date"
-              id="invoiceDate"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
+            <label htmlFor="customerAddress">ที่อยู่ลูกค้า</label>
+            <textarea
+              id="customerAddress"
+              placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..."
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+              rows="3"
             />
           </div>
         </div>

@@ -56,21 +56,30 @@ export default function PrintLayout({ invoice, items = [] }) {
         </table>
 
         {/* Customer & Date Info Box */}
-        <div className="customer-info-box">
-          <div className="customer-info-left">
-            <div className="customer-title">ชื่อลูกค้า</div>
-            <div className="customer-name">{invoice.customerName || ''}</div>
-            {invoice.customerAddress && (
-              <div className="customer-address" style={{ fontSize: '14px', textAlign: 'center', marginTop: '5px', padding: '0 10px' }}>
-                {invoice.customerAddress}
-              </div>
-            )}
-          </div>
-          <div className="customer-info-right" style={{ flexDirection: 'column', gap: '8px' }}>
+        <div className="customer-info-box" style={{ 
+          border: '1px solid #000', 
+          padding: '15px 20px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '12px',
+          marginBottom: '20px'
+        }}>
+          {/* Row 1: Label ชื่อลูกค้า & Date */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>ชื่อลูกค้า</div>
             <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{formatThaiDate(invoice.date)}</div>
-            {invoice.customerTaxId && (
-              <div style={{ fontSize: '14px', fontWeight: 'normal' }}>เลขประจำตัวผู้เสียภาษี<br/>{invoice.customerTaxId}</div>
-            )}
+          </div>
+          
+          {/* Row 2: Customer Name & Tax ID Label */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '16px', flex: 1 }}>{invoice.customerName || '-'}</div>
+            <div style={{ fontSize: '14px', flex: 1, textAlign: 'right' }}>เลขประจำตัวผู้เสียภาษี</div>
+          </div>
+
+          {/* Row 3: Customer Address & Tax ID Value */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '14px', flex: 1, paddingRight: '20px' }}>{invoice.customerAddress || '-'}</div>
+            <div style={{ fontSize: '14px', flex: 1, textAlign: 'right' }}>{invoice.customerTaxId || '-'}</div>
           </div>
         </div>
 
