@@ -132,58 +132,39 @@ export default function Dashboard({ invoices = [], items = [] }) {
   return (
     <div>
       {/* Filters Section */}
-      <div className="card" style={{ padding: '1.25rem 2rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: 'var(--primary-color)' }}>
-            <Filter size={18} />
-            <span>กรองข้อมูลสถิติ:</span>
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            style={{ padding: '0.4rem 0.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: 'var(--primary-color)', outline: 'none', fontWeight: '500', fontSize: '0.85rem' }}
+          >
+            <option value="all">ทุกเดือน</option>
+            {THAI_MONTH_NAMES.map((name, idx) => (
+              <option key={idx} value={idx}>{name}</option>
+            ))}
+          </select>
 
-          <div style={{ display: 'flex', gap: '1rem', flex: 1, flexWrap: 'wrap' }}>
-            {/* Year Filter */}
-            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <label htmlFor="yearFilter" style={{ whiteSpace: 'nowrap' }}>ปี พ.ศ.</label>
-              <select
-                id="yearFilter"
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                style={{ padding: '0.4rem 1.5rem 0.4rem 0.75rem', borderRadius: '8px' }}
-              >
-                <option value="all">ทั้งหมด</option>
-                {uniqueYears.map(year => (
-                  <option key={year} value={year}>{year + 543}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Month Filter */}
-            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-              <label htmlFor="monthFilter" style={{ whiteSpace: 'nowrap' }}>เดือน</label>
-              <select
-                id="monthFilter"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ padding: '0.4rem 1.5rem 0.4rem 0.75rem', borderRadius: '8px' }}
-              >
-                <option value="all">ทั้งหมด</option>
-                {THAI_MONTH_NAMES.map((name, idx) => (
-                  <option key={idx} value={idx}>{name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Reset Filters Option */}
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            style={{ padding: '0.4rem 0.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: 'var(--primary-color)', outline: 'none', fontWeight: '500', fontSize: '0.85rem' }}
+          >
+            <option value="all">ทุกปี</option>
+            {uniqueYears.map(year => (
+              <option key={year} value={year}>{year + 543}</option>
+            ))}
+          </select>
+          
           {(selectedYear !== 'all' || selectedMonth !== 'all') && (
             <button
-              className="btn btn-outline"
               onClick={() => {
                 setSelectedYear('all');
                 setSelectedMonth('all');
               }}
-              style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+              style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid #ef4444', backgroundColor: '#fef2f2', color: '#ef4444', outline: 'none', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer' }}
             >
-              ล้างการกรอง
+              ล้าง
             </button>
           )}
         </div>

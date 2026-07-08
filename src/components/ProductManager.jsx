@@ -45,12 +45,7 @@ export default function ProductManager({ products = [], onManageProduct }) {
   };
 
   return (
-    <div className="card">
-      <h2 className="card-title">
-        <Package className="text-primary" /> 
-        จัดการรายการสินค้า
-      </h2>
-
+    <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
         {!isAdding && (
           <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
@@ -59,110 +54,139 @@ export default function ProductManager({ products = [], onManageProduct }) {
         )}
       </div>
 
-      <div className="recent-table-wrapper" style={{ overflowX: 'auto' }}>
-        <table className="recent-table">
-          <thead>
-            <tr>
-              <th style={{ width: '60%' }}>ชื่อสินค้า</th>
-              <th style={{ width: '20%', textAlign: 'center' }}>ราคา (บาท)</th>
-              <th style={{ width: '20%', textAlign: 'center' }}>จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isAdding && (
-              <tr style={{ backgroundColor: '#f8fafc' }}>
-                <td>
-                  <input 
-                    type="text" 
-                    value={newItem.name} 
-                    onChange={e => setNewItem({...newItem, name: e.target.value})}
-                    placeholder="ชื่อสินค้า..."
-                    style={{ width: '100%' }}
-                    autoFocus
-                  />
-                </td>
-                <td>
-                  <input 
-                    type="number" 
-                    value={newItem.price} 
-                    onChange={e => setNewItem({...newItem, price: e.target.value})}
-                    placeholder="0"
-                    style={{ width: '100%', textAlign: 'center' }}
-                  />
-                </td>
-                <td style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                    <button className="btn" style={{ padding: '0.4rem', backgroundColor: 'var(--success)', color: 'white' }} onClick={handleAdd}>
-                      <Check size={16} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {isAdding && (
+          <div style={{ 
+            backgroundColor: '#f8fafc', 
+            borderRadius: '16px', 
+            padding: '1.25rem', 
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ flex: 2 }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ชื่อสินค้า</div>
+                <input 
+                  type="text" 
+                  value={newItem.name} 
+                  onChange={e => setNewItem({...newItem, name: e.target.value})}
+                  placeholder="ชื่อสินค้า..."
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                  autoFocus
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
+                <input 
+                  type="number" 
+                  value={newItem.price} 
+                  onChange={e => setNewItem({...newItem, price: e.target.value})}
+                  placeholder="0"
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setIsAdding(false)}
+                style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <X size={16} /> ยกเลิก
+              </button>
+              <button 
+                onClick={handleAdd}
+                style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: 'var(--success)', color: 'white', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Check size={16} /> บันทึก
+              </button>
+            </div>
+          </div>
+        )}
+
+        {products.length === 0 && !isAdding ? (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+            <Package size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+            <div style={{ fontSize: '1.1rem', fontWeight: '500', color: '#64748b' }}>ยังไม่มีรายการสินค้า</div>
+            <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>กดปุ่ม "เพิ่มสินค้าใหม่" เพื่อเริ่มต้น</div>
+          </div>
+        ) : (
+          paginatedProducts.map(product => (
+            <div key={product.id} style={{ 
+              backgroundColor: editingId === product.id ? '#f8fafc' : '#ffffff', 
+              borderRadius: '16px', 
+              padding: '1.25rem', 
+              border: '1px solid #e2e8f0',
+              boxShadow: editingId === product.id ? 'none' : '0 2px 4px rgba(0,0,0,0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              {editingId === product.id ? (
+                <>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ flex: 2 }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ชื่อสินค้า</div>
+                      <input 
+                        type="text" 
+                        value={editItem.name} 
+                        onChange={e => setEditItem({...editItem, name: e.target.value})}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                        autoFocus
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
+                      <input 
+                        type="number" 
+                        value={editItem.price} 
+                        onChange={e => setEditItem({...editItem, price: e.target.value})}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button 
+                      onClick={cancelEdit}
+                      style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <X size={16} /> ยกเลิก
                     </button>
-                    <button className="btn" style={{ padding: '0.4rem', backgroundColor: '#e2e8f0', color: 'var(--text-main)' }} onClick={() => setIsAdding(false)}>
-                      <X size={16} />
+                    <button 
+                      onClick={saveEdit}
+                      style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: 'var(--success)', color: 'white', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Check size={16} /> บันทึก
                     </button>
                   </div>
-                </td>
-              </tr>
-            )}
-
-            {products.length === 0 && !isAdding ? (
-              <tr>
-                <td colspan="3" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  ยังไม่มีรายการสินค้า
-                </td>
-              </tr>
-            ) : (
-              paginatedProducts.map(product => (
-                <tr key={product.id}>
-                  {editingId === product.id ? (
-                    <>
-                      <td>
-                        <input 
-                          type="text" 
-                          value={editItem.name} 
-                          onChange={e => setEditItem({...editItem, name: e.target.value})}
-                          style={{ width: '100%' }}
-                          autoFocus
-                        />
-                      </td>
-                      <td>
-                        <input 
-                          type="number" 
-                          value={editItem.price} 
-                          onChange={e => setEditItem({...editItem, price: e.target.value})}
-                          style={{ width: '100%', textAlign: 'center' }}
-                        />
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button className="btn" style={{ padding: '0.4rem', backgroundColor: 'var(--success)', color: 'white' }} onClick={saveEdit}>
-                            <Check size={16} />
-                          </button>
-                          <button className="btn" style={{ padding: '0.4rem', backgroundColor: '#e2e8f0', color: 'var(--text-main)' }} onClick={cancelEdit}>
-                            <X size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>{product.name}</td>
-                      <td style={{ textAlign: 'center' }}>{product.price}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', color: 'var(--primary-color)', minHeight: 'unset' }} onClick={() => startEdit(product)}>
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', color: 'var(--danger)', borderColor: 'transparent', minHeight: 'unset' }} onClick={() => handleDelete(product.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                </>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ebf2ef', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-color)', flexShrink: 0 }}>
+                      <Package size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>{product.name}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: '600' }}>฿{product.price}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => startEdit(product)}
+                      title="แก้ไขสินค้า"
+                      style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', backgroundColor: '#f1f5f9' }}>
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(product.id)}
+                      title="ลบสินค้า"
+                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', backgroundColor: '#fef2f2' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       {totalPages > 1 && (

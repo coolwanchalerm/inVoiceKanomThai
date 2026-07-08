@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle, Package } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
 
 export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [], customers = [] }) {
@@ -107,246 +107,168 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
   };
 
   return (
-    <div className="card">
-      <h2 className="card-title">
-        <ClipboardCheck className="logo-icon" /> ออกใบเสร็จใหม่
-      </h2>
-
+    <div style={{ padding: '1rem', paddingBottom: '100px', maxWidth: '800px', margin: '0 auto' }}>
       <form onSubmit={handleSaveAndPrint}>
-        <div className="form-grid">
-          <div className="form-group">
-            <label htmlFor="invoiceDate">วันที่ออกใบเสร็จ</label>
-            <input
-              type="date"
-              id="invoiceDate"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
+        
+        {/* Customer Details Card */}
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+          <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ClipboardCheck size={18} /> ข้อมูลลูกค้า
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="invoiceDate" style={{ fontSize: '0.85rem' }}>วันที่ออกใบเสร็จ</label>
+              <input type="date" id="invoiceDate" value={date} onChange={(e) => setDate(e.target.value)} required style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+            </div>
 
-          <div className="form-group" style={{ position: 'relative' }}>
-            <label htmlFor="customerName">ชื่อลูกค้า</label>
-            <input
-              type="text"
-              id="customerName"
-              placeholder="ร้านขนมไทยแทนคุณ"
-              value={customerName}
-              onChange={(e) => {
-                setCustomerName(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              required
-            />
-            {showSuggestions && filteredCustomers.length > 0 && (
-              <ul style={{
-                position: 'absolute', top: '100%', left: 0, right: 0,
-                backgroundColor: 'white', border: '1px solid var(--border-color)',
-                borderRadius: '8px', marginTop: '4px', padding: 0, listStyle: 'none',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '200px', overflowY: 'auto'
-              }}>
-                {filteredCustomers.map((cust, idx) => (
-                  <li 
-                    key={idx}
-                    style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderBottom: idx !== filteredCustomers.length - 1 ? '1px solid #eee' : 'none' }}
-                    onMouseDown={() => {
-                      setCustomerName(cust.name);
-                      setCustomerAddress(cust.address);
-                      setCustomerTaxId(cust.taxId);
-                      setShowSuggestions(false);
-                    }}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{ fontWeight: '500', color: 'var(--text-main)' }}>{cust.name}</div>
-                    {(cust.address || cust.taxId) && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {cust.address} {cust.taxId ? `(Tax ID: ${cust.taxId})` : ''}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+            <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+              <label htmlFor="customerName" style={{ fontSize: '0.85rem' }}>ชื่อลูกค้า</label>
+              <input type="text" id="customerName" placeholder="ร้านขนมไทยแทนคุณ" value={customerName} onChange={(e) => { setCustomerName(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} required style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              {showSuggestions && filteredCustomers.length > 0 && (
+                <ul style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', marginTop: '4px', padding: '0.5rem', listStyle: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: '250px', overflowY: 'auto' }}>
+                  {filteredCustomers.map((cust, idx) => (
+                    <li key={idx} style={{ padding: '0.75rem 1rem', cursor: 'pointer', borderRadius: '8px', marginBottom: idx !== filteredCustomers.length - 1 ? '4px' : '0' }} onMouseDown={() => { setCustomerName(cust.name); setCustomerAddress(cust.address); setCustomerTaxId(cust.taxId); setShowSuggestions(false); }} onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'} onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}>
+                      <div style={{ fontWeight: '600', color: '#1e293b' }}>{cust.name}</div>
+                      {(cust.address || cust.taxId) && (
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                          {cust.address} {cust.taxId ? `(Tax ID: ${cust.taxId})` : ''}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="customerTaxId">เลขประจำตัวผู้เสียภาษี</label>
-            <input
-              type="text"
-              id="customerTaxId"
-              placeholder="เช่น 0123456789012"
-              value={customerTaxId}
-              onChange={(e) => setCustomerTaxId(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="customerAddress">ที่อยู่ลูกค้า</label>
-            <textarea
-              id="customerAddress"
-              placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..."
-              value={customerAddress}
-              onChange={(e) => setCustomerAddress(e.target.value)}
-              rows="3"
-            />
+            <div className="form-group" style={{ margin: 0 }}>
+              <label htmlFor="customerTaxId" style={{ fontSize: '0.85rem' }}>เลขประจำตัวผู้เสียภาษี (ถ้ามี)</label>
+              <input type="text" id="customerTaxId" placeholder="เช่น 0123456789012" value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} style={{ borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+            </div>
+            
+            <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
+              <label htmlFor="customerAddress" style={{ fontSize: '0.85rem' }}>ที่อยู่ลูกค้า</label>
+              <textarea id="customerAddress" placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..." value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} rows="2" style={{ borderRadius: '8px', border: '1px solid #cbd5e1', resize: 'vertical' }} />
+            </div>
           </div>
         </div>
 
-        {/* Preset Selector */}
+        {/* Selected Items Card List */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>รายการขนมแนะนำด่วน (5 อันดับขายดี)</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {topProducts.length > 0 ? topProducts.map((preset, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="btn btn-outline"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
-                onClick={() => applyPreset(preset)}
-              >
-                {preset.description} ({preset.unitPrice}.-)
-              </button>
-            )) : (
-              <span style={{ fontSize: '0.85rem', color: '#666' }}>ระบบกำลังรวบรวมข้อมูลยอดขาย...</span>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.1rem', color: '#1e293b', margin: 0 }}>รายการสินค้า</h3>
+            <span style={{ fontSize: '0.85rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '0.2rem 0.6rem', borderRadius: '12px' }}>{items.length} รายการ</span>
           </div>
-        </div>
 
-        {/* Add item row */}
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '10px' }}>
-          <div className="form-group" style={{ flex: 2, minWidth: '200px' }}>
-            <label>รายการสินค้า</label>
-            <input
-              type="text"
-              list="products-list"
-              placeholder="พิมพ์ชื่อสินค้า หรือเลือกจากขนมแนะนำด้านบน"
-              value={newItem.description}
-              onChange={(e) => {
-                const val = e.target.value;
-                setNewItem(prev => {
-                  const updated = { ...prev, description: val };
-                  // Auto-fill price if matched with products
-                  const matchedProduct = products.find(p => p.name === val);
-                  if (matchedProduct) {
-                    updated.unitPrice = matchedProduct.price;
-                  }
-                  return updated;
-                });
-              }}
-            />
-            <datalist id="products-list">
-              {products.map(p => (
-                <option key={p.id} value={p.name} />
-              ))}
-            </datalist>
-          </div>
-          <div className="form-group" style={{ width: '100px' }}>
-            <label>จำนวน</label>
-            <input
-              type="number"
-              min="1"
-              value={newItem.quantity}
-              onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-            />
-          </div>
-          <div className="form-group" style={{ width: '120px' }}>
-            <label>หน่วยละ (บาท)</label>
-            <input
-              type="number"
-              min="0"
-              value={newItem.unitPrice}
-              onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })}
-            />
-          </div>
-          <button type="button" className="btn btn-primary" onClick={addItem} style={{ height: '43px' }}>
-            <Plus size={18} /> เพิ่ม
-          </button>
-        </div>
-
-        {/* Items Table */}
-        <table className="items-builder-table">
-          <thead>
-            <tr>
-              <th style={{ width: '45%' }}>รายการ (Description)</th>
-              <th style={{ width: '15%', textAlign: 'center' }}>จำนวน (Qty)</th>
-              <th style={{ width: '20%', textAlign: 'right' }}>หน่วยละ (Price)</th>
-              <th style={{ width: '20%', textAlign: 'right' }}>จำนวนเงิน (Amount)</th>
-              <th style={{ width: '10%', textAlign: 'center' }}></th>
-            </tr>
-          </thead>
-          <tbody>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {items.length === 0 ? (
-              <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  ยังไม่มีรายการสินค้า กรุณาเพิ่มรายการ
-                </td>
-              </tr>
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                <Package size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                <div style={{ fontSize: '1.1rem', fontWeight: '500', color: '#64748b' }}>ยังไม่มีรายการสินค้า</div>
+                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>เพิ่มรายการด้านล่างเพื่อเริ่มต้น</div>
+              </div>
             ) : (
               items.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(item.id, 'description', e.target.value)}
-                      style={{ width: '100%', border: 'none', background: 'transparent', padding: '4px' }}
-                    />
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
-                      style={{ width: '70px', textAlign: 'center', border: 'none', background: 'transparent', padding: '4px' }}
-                    />
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.unitPrice}
-                      onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)}
-                      style={{ width: '90px', textAlign: 'right', border: 'none', background: 'transparent', padding: '4px' }}
-                    />
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: '600', paddingRight: '1rem' }}>
-                    {item.amount.toLocaleString()}.-
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      style={{ padding: '0.35rem', color: 'var(--danger)', borderColor: 'transparent' }}
-                      onClick={() => removeItem(item.id)}
-                    >
-                      <Trash2 size={16} />
+                <div key={item.id} className="card" style={{ padding: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <div style={{ flex: 1, paddingRight: '2.5rem' }}>
+                      <input type="text" value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: '600', fontSize: '1.05rem', color: '#1e293b', outline: 'none', padding: 0 }} />
+                    </div>
+                    <button type="button" onClick={() => removeItem(item.id)} title="ลบรายการ" style={{ position: 'absolute', top: '1rem', right: '1rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Trash2 size={14} />
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>จำนวน:</div>
+                      <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '0.2rem' }}>
+                        <button type="button" style={{ border: 'none', background: 'none', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} onClick={() => handleItemChange(item.id, 'quantity', Math.max(1, Number(item.quantity) - 1))}>-</button>
+                        <input type="number" min="1" value={item.quantity} onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} style={{ width: '40px', textAlign: 'center', border: 'none', background: 'transparent', outline: 'none', fontWeight: '500' }} />
+                        <button type="button" style={{ border: 'none', background: 'none', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }} onClick={() => handleItemChange(item.id, 'quantity', Number(item.quantity) + 1)}>+</button>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>ราคา/หน่วย:</div>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>฿</span>
+                        <input type="number" min="0" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} style={{ width: '60px', textAlign: 'right', border: 'none', background: 'transparent', outline: 'none', fontWeight: '500', padding: '0 0.25rem' }} />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.5rem' }}>รวม:</div>
+                    <div style={{ fontWeight: '700', color: 'var(--primary-color)', fontSize: '1.1rem' }}>฿{item.amount.toLocaleString()}</div>
+                  </div>
+                </div>
               ))
             )}
-            {items.length > 0 && (
-              <tr style={{ backgroundColor: '#fdfcf7', fontWeight: 'bold' }}>
-                <td colSpan="3" style={{ textAlign: 'right', paddingRight: '1rem', color: 'var(--primary-color)' }}>ยอดรวมทั้งหมด:</td>
-                <td style={{ textAlign: 'right', paddingRight: '1rem', color: 'var(--primary-color)', fontSize: '1.1rem' }}>
-                  {totalAmount.toLocaleString()}.-
-                </td>
-                <td></td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          </div>
+        </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-          <button type="submit" className="btn btn-accent" style={{ padding: '0.85rem 2rem' }}>
-            <Printer size={18} /> บันทึก & พิมพ์ใบเสร็จ (Print PDF)
+        {/* Add New Item Form */}
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            
+            {/* Presets */}
+            {topProducts.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>แนะนำด่วน (คลิกเพื่อเพิ่ม)</div>
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="hide-scrollbar">
+                  {topProducts.map((preset, idx) => (
+                    <button key={idx} type="button" onClick={() => applyPreset(preset)} style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                      <Plus size={12} color="var(--primary-color)" />
+                      {preset.description} <span style={{ color: '#94a3b8' }}>฿{preset.unitPrice}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>เพิ่มรายการใหม่</div>
+                <input type="text" list="products-list" placeholder="ชื่อขนม..." value={newItem.description} onChange={(e) => { const val = e.target.value; setNewItem(prev => { const updated = { ...prev, description: val }; const matchedProduct = products.find(p => p.name === val); if (matchedProduct) { updated.unitPrice = matchedProduct.price; } return updated; }); }} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                <datalist id="products-list">
+                  {products.map(p => (
+                    <option key={p.id} value={p.name} />
+                  ))}
+                </datalist>
+              </div>
+              <div style={{ width: '70px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
+                <input type="number" min="1" value={newItem.quantity} onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }} />
+              </div>
+              <div style={{ width: '90px' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา</div>
+                <input type="number" min="0" value={newItem.unitPrice} onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }} />
+              </div>
+              <button type="button" onClick={addItem} style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', color: '#1e293b', fontWeight: '600', cursor: 'pointer', height: '41px' }}>
+                เพิ่ม
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Total & Submit */}
+        <div className="card" style={{ padding: '1.5rem', backgroundColor: 'var(--primary-color)', color: 'white', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '1.1rem', opacity: 0.9 }}>ยอดรวมทั้งสิ้น</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: '700' }}>฿{totalAmount.toLocaleString()}</div>
+          </div>
+          <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            <Printer size={20} /> ออกใบเสร็จ (Print PDF)
           </button>
         </div>
+
       </form>
+      
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }

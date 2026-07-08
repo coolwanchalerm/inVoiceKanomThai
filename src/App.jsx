@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home } from 'lucide-react';
+import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home, BarChart2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
@@ -296,15 +296,15 @@ export default function App() {
               className={`menu-item ${view === 'dashboard' ? 'active' : ''}`}
               onClick={() => setView('dashboard')}
             >
-              <LayoutDashboard size={20} />
-              สรุปยอดขาย (สถิติ)
+              <BarChart2 size={20} />
+              สรุปยอดขาย
             </li>
             <li 
               className={`menu-item ${view === 'products' ? 'active' : ''}`}
               onClick={() => setView('products')}
             >
               <Package size={20} />
-              จัดการสินค้า
+              รายการขนม
             </li>
           </ul>
 
@@ -319,10 +319,10 @@ export default function App() {
           <header className="page-header">
             <div>
               <h1 className="page-title">
-                {view === 'generator' && 'ระบบออกใบเสร็จรับเงิน'}
+                {view === 'generator' && 'ออกใบเสร็จรับเงิน'}
                 {view === 'history' && 'ประวัติการออกใบเสร็จ'}
-                {view === 'dashboard' && 'แดชบอร์ด & สรุปยอดขาย'}
-                {view === 'products' && 'จัดการสินค้า'}
+                {view === 'dashboard' && 'สรุปยอดขาย'}
+                {view === 'products' && 'รายการขนม'}
               </h1>
             </div>
 
@@ -394,7 +394,7 @@ export default function App() {
             onClick={() => setView('products')}
           >
             <Package className="icon" />
-            <span>สินค้า</span>
+            <span>รายการขนม</span>
           </button>
 
           <div className="bottom-nav-fab-wrapper">
