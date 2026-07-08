@@ -21,12 +21,11 @@ const formatThaiDate = (dateStr) => {
 export default function PrintLayout({ invoice, items = [] }) {
   if (!invoice) return null;
 
-  // Pads the items table to always have at least 4 rows to match the PDF layout aesthetics
-  const minRows = 4;
+  // Adds exactly 2 empty rows to the end of the items list
   const paddedItems = [...items];
-  while (paddedItems.length < minRows) {
+  for (let i = 0; i < 2; i++) {
     paddedItems.push({
-      id: `empty-${paddedItems.length}`,
+      id: `empty-${Date.now()}-${i}`,
       description: '',
       quantity: '',
       unitPrice: '',
