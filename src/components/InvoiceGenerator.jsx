@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
 
-export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products = [], topProducts = [] }) {
+export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [] }) {
   const [customerName, setCustomerName] = useState('');
   // Default date to current local Thai date format
   const getTodayThaiDate = () => {
@@ -118,12 +118,12 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
 
           <div className="form-group">
             <label htmlFor="customerAddress">ที่อยู่ลูกค้า</label>
-            <input
-              type="text"
+            <textarea
               id="customerAddress"
               placeholder="เช่น 123/4 ม.5 ต.ดงมะไฟ..."
               value={customerAddress}
               onChange={(e) => setCustomerAddress(e.target.value)}
+              rows="3"
             />
           </div>
           
@@ -295,13 +295,6 @@ export default function InvoiceGenerator({ onSubmitInvoice, scriptUrl, products 
             )}
           </tbody>
         </table>
-
-        {!scriptUrl && (
-          <div style={{ display: 'flex', gap: '0.5rem', color: '#856404', backgroundColor: '#fff3cd', padding: '0.75rem 1rem', borderRadius: '10px', marginBottom: '1.5rem', fontSize: '0.9rem', alignItems: 'center' }}>
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>ยังไม่ได้ตั้งค่า Google Apps Script Web App! ข้อมูลจะถูกบันทึกไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น แต่คุณยังคงสามารถกดสั่งพิมพ์ใบเสร็จ PDF ได้ตามปกติ</span>
-          </div>
-        )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
           <button type="submit" className="btn btn-accent" style={{ padding: '0.85rem 2rem' }}>

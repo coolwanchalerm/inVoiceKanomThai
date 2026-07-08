@@ -193,7 +193,7 @@ label {
   color: var(--primary-color);
 }
 
-input, select {
+input, select, textarea {
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: 10px;
@@ -204,7 +204,7 @@ input, select {
   transition: var(--transition);
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(30, 58, 43, 0.1);
 }

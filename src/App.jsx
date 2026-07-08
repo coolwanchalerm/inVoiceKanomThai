@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Receipt, Loader2, History, Package } from 'lucide-react';
+import { supabase } from './supabaseClient';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
 import InvoiceHistory from './components/InvoiceHistory';
@@ -10,19 +11,15 @@ import ProductManager from './components/ProductManager';
 
 export default function App() {
   const [view, setView] = useState('generator');
-  const scriptUrl = 'https://script.google.com/macros/s/AKfycbycUqiSU3Z_7FcujuQBTqRcsijKuY0IdCgFq6LDo9R1HYsBgC9o2OqlrVdyhXaSPvtR/exec';
-  const [localInvoices, setLocalInvoices] = useState(() => JSON.parse(localStorage.getItem('invoices') || '[]'));
-  const [localItems, setLocalItems] = useState(() => JSON.parse(localStorage.getItem('invoice_items') || '[]'));
   
   const [dbInvoices, setDbInvoices] = useState([]);
   const [dbItems, setDbItems] = useState([]);
   const [dbProducts, setDbProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'success' | 'error'
 
   const [printInvoice, setPrintInvoice] = useState(null);
   const [printItems, setPrintItems] = useState([]);
-  const [copied, setCopied] = useState(false);
   
   // UI States
   const [isOverlayLoading, setIsOverlayLoading] = useState(false);
@@ -39,24 +36,47 @@ export default function App() {
     } : null, confirmText, cancelText });
   };
 
-  // Sync data from Google Sheet if Script URL is set
-  const fetchData = async (urlToFetch = scriptUrl) => {
-    if (!urlToFetch) return;
+  // Sync data from Supabase
+  const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch with method=GET as standard query parameter
-      const response = await fetch(`${urlToFetch}?method=GET`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        setDbInvoices(data.invoices || []);
-        setDbItems(data.items || []);
-        setDbProducts(data.products || []);
-        setSyncStatus('success');
-      } else {
-        setSyncStatus('error');
-      }
+      const [invoicesRes, itemsRes, productsRes] = await Promise.all([
+        supabase.from('invoices').select('*').order('created_at', { ascending: false }),
+        supabase.from('invoice_items').select('*'),
+        supabase.from('products').select('*').order('created_at', { ascending: false })
+      ]);
+
+      if (invoicesRes.error) throw invoicesRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+      if (productsRes.error) throw productsRes.error;
+
+      // Map Supabase snake_case to camelCase where necessary
+      const formattedInvoices = invoicesRes.data.map(inv => ({
+        id: inv.id,
+        date: inv.date,
+        customerName: inv.customer_name,
+        customerAddress: inv.customer_address,
+        customerTaxId: inv.customer_tax_id,
+        totalAmount: inv.total_amount,
+        printedStatus: inv.printed_status,
+        createdAt: inv.created_at
+      }));
+
+      const formattedItems = itemsRes.data.map(item => ({
+        id: item.id,
+        invoiceId: item.invoice_id,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unit_price,
+        amount: item.amount
+      }));
+
+      setDbInvoices(formattedInvoices);
+      setDbItems(formattedItems);
+      setDbProducts(productsRes.data || []);
+      setSyncStatus('success');
     } catch (error) {
-      console.error('Failed to fetch from Google Sheet:', error);
+      console.error('Failed to fetch from Supabase:', error);
       setSyncStatus('error');
     } finally {
       setLoading(false);
@@ -65,13 +85,11 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
-  }, [scriptUrl]);
+  }, []);
 
-  // Combined Invoices and Items for the dashboard: prioritize DB if sync was successful, fallback to local otherwise
-  const invoices = syncStatus === 'success' ? dbInvoices : localInvoices;
-  const items = syncStatus === 'success' ? dbItems : localItems;
+  const invoices = dbInvoices;
+  const items = dbItems;
 
-  // Calculate Top 5 best selling products based on historical frequency in items
   const topProducts = React.useMemo(() => {
     const freq = {};
     items.forEach(item => {
@@ -80,85 +98,83 @@ export default function App() {
     const sortedDesc = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
     const top5Names = sortedDesc.slice(0, 5);
     
-    // Map names back to product objects with prices
     return top5Names.map(name => {
-      // Try to find price from DB products first
       const productObj = dbProducts.find(p => p.name === name);
       if (productObj) return { description: name, unitPrice: productObj.price };
-      
-      // Fallback: look at recent items to guess the price
       const recentItem = items.find(i => i.description === name);
       return { description: name, unitPrice: recentItem ? recentItem.unitPrice : 0 };
     });
   }, [items, dbProducts]);
 
   const handleManageProduct = async (subAction, product) => {
-    if (!scriptUrl) {
-      showModal('แจ้งเตือน', 'กรุณาตั้งค่า Google Apps Script URL ก่อนจัดการสินค้า', 'error');
-      return;
-    }
-    
     setLoadingMessage('กำลังบันทึกข้อมูลสินค้า...');
     setIsOverlayLoading(true);
     try {
-      const payload = { subAction, product };
-      const response = await fetch(`${scriptUrl}?method=GET&action=manageProduct&data=${encodeURIComponent(JSON.stringify(payload))}`);
-      const data = await response.json();
-      if (data.status === 'success') {
-        fetchData(scriptUrl); // Refresh data
-      } else {
-        showModal('เกิดข้อผิดพลาด', data.message, 'error');
+      if (subAction === 'add') {
+        const { error } = await supabase.from('products').insert([
+          { name: product.name, price: product.price }
+        ]);
+        if (error) throw error;
+      } else if (subAction === 'edit') {
+        const { error } = await supabase.from('products').update({ name: product.name, price: product.price }).eq('id', product.id);
+        if (error) throw error;
+      } else if (subAction === 'delete') {
+        const { error } = await supabase.from('products').delete().eq('id', product.id);
+        if (error) throw error;
       }
+      await fetchData(); 
     } catch (error) {
       console.error(error);
-      showModal('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
+      showModal('เกิดข้อผิดพลาด', 'ไม่สามารถจัดการสินค้าได้: ' + error.message, 'error');
     } finally {
       setIsOverlayLoading(false);
     }
   };
 
   const handleCreateInvoice = async (invoice, invoiceItems) => {
-    // 1. Always save to localStorage as safety backup
-    const newLocalInvoices = [invoice, ...localInvoices];
-    const newLocalItems = [...invoiceItems.map(item => ({ ...item, invoiceId: invoice.id, date: invoice.date })), ...localItems];
-    
-    localStorage.setItem('invoices', JSON.stringify(newLocalInvoices));
-    localStorage.setItem('invoice_items', JSON.stringify(newLocalItems));
-    setLocalInvoices(newLocalInvoices);
-    setLocalItems(newLocalItems);
+    setLoadingMessage('กำลังบันทึกลงระบบฐานข้อมูล...');
+    setIsOverlayLoading(true);
+    try {
+      // 1. Insert Invoice
+      const { error: invError } = await supabase.from('invoices').insert([{
+        id: invoice.id,
+        date: invoice.date,
+        customer_name: invoice.customerName,
+        customer_address: invoice.customerAddress || "",
+        customer_tax_id: invoice.customerTaxId || "",
+        total_amount: invoice.totalAmount,
+        printed_status: false
+      }]);
+      if (invError) throw invError;
 
-    // 2. Prepare state for printing
-    setPrintInvoice(invoice);
-    setPrintItems(invoiceItems);
+      // 2. Insert Items
+      const itemsToInsert = invoiceItems.map(item => ({
+        invoice_id: invoice.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        amount: item.amount
+      }));
 
-    // 3. Attempt to save to Google Apps Script if URL is configured
-    if (scriptUrl) {
-      setLoadingMessage('กำลังบันทึกลงระบบ...');
-      setIsOverlayLoading(true);
-      try {
-        const payload = { invoice: invoice, items: invoiceItems };
-        const response = await fetch(`${scriptUrl}?method=GET&action=createInvoice&data=${encodeURIComponent(JSON.stringify(payload))}`);
-        const data = await response.json();
-        
-        setIsOverlayLoading(false);
-        
-        if (data.status === 'error') {
-          showModal('เกิดข้อผิดพลาดจากฝั่ง Google', data.message, 'error');
-        }
-        
-        // Refresh sales data to update stats
-        fetchData();
-      } catch (err) {
-        setIsOverlayLoading(false);
-        console.error('Error uploading to Google Sheet & Drive:', err);
-        showModal('เกิดข้อผิดพลาดในการเชื่อมต่อ', err.message, 'error');
-      }
+      const { error: itemsError } = await supabase.from('invoice_items').insert(itemsToInsert);
+      if (itemsError) throw itemsError;
+      
+      await fetchData();
+      
+      // Prepare state for printing
+      setPrintInvoice(invoice);
+      setPrintItems(invoiceItems);
+      
+      setTimeout(() => {
+        window.print();
+      }, 500);
+      
+    } catch (err) {
+      console.error('Error saving to Supabase:', err);
+      showModal('เกิดข้อผิดพลาดในการบันทึกข้อมูล', err.message, 'error');
+    } finally {
+      setIsOverlayLoading(false);
     }
-
-    // 4. Trigger browser print UI
-    setTimeout(() => {
-      window.print();
-    }, 500);
   };
 
   const handlePrintInvoice = (invoiceId) => {
@@ -175,44 +191,23 @@ export default function App() {
   const handleDeleteInvoice = (invoiceId) => {
     showModal(
       'ยืนยันการลบใบเสร็จ',
-      `คุณแน่ใจหรือไม่ว่าต้องการลบใบเสร็จเลขที่ ${invoiceId} ? ข้อมูลจะถูกลบออกจากระบบและ Google Drive แบบถาวร`,
+      `คุณแน่ใจหรือไม่ว่าต้องการลบใบเสร็จเลขที่ ${invoiceId} ? ข้อมูลจะถูกลบออกจากระบบแบบถาวร`,
       'delete',
       async () => {
-        setLoadingMessage('กำลังลบใบเสร็จออกจากระบบและ Google Drive...');
+        setLoadingMessage('กำลังลบใบเสร็จออกจากระบบ...');
         setIsOverlayLoading(true);
 
         try {
-          // Optimistically update UI
-          const newLocalInvoices = localInvoices.filter(inv => inv.id !== invoiceId);
-          const newLocalItems = localItems.filter(item => item.invoiceId !== invoiceId);
-          localStorage.setItem('invoices', JSON.stringify(newLocalInvoices));
-          localStorage.setItem('invoice_items', JSON.stringify(newLocalItems));
-          setLocalInvoices(newLocalInvoices);
-          setLocalItems(newLocalItems);
-
-          if (scriptUrl) {
-            const payload = { action: 'deleteInvoice', invoiceId };
-            const response = await fetch(`${scriptUrl}?method=GET&action=deleteInvoice&data=${encodeURIComponent(JSON.stringify(payload))}`);
-            const data = await response.json();
-            
-            setIsOverlayLoading(false);
-            
-            if (data.status === 'error') {
-              showModal('เกิดข้อผิดพลาดในการลบใบเสร็จ', data.message, 'error');
-            } else {
-              showModal('ลบสำเร็จ', 'ใบเสร็จถูกลบออกจากระบบเรียบร้อยแล้ว', 'success');
-            }
-            
-            // Refresh sales data
-            fetchData();
-          } else {
-            setIsOverlayLoading(false);
-            showModal('ลบสำเร็จ', 'ใบเสร็จถูกลบออกจากเครื่องเรียบร้อยแล้ว', 'success');
-          }
+          const { error } = await supabase.from('invoices').delete().eq('id', invoiceId);
+          if (error) throw error;
+          
+          await fetchData();
+          showModal('ลบสำเร็จ', 'ใบเสร็จถูกลบออกจากระบบเรียบร้อยแล้ว', 'success');
         } catch (err) {
-          setIsOverlayLoading(false);
           console.error('Error deleting invoice:', err);
-          showModal('เกิดข้อผิดพลาดในการเชื่อมต่อ', err.message, 'error');
+          showModal('เกิดข้อผิดพลาดในการลบข้อมูล', err.message, 'error');
+        } finally {
+          setIsOverlayLoading(false);
         }
       },
       () => {}, // onCancel do nothing
@@ -222,7 +217,6 @@ export default function App() {
   };
 
   const handleTogglePrintStatus = async (invoiceId, currentStatus) => {
-    if (!scriptUrl) return;
     const newStatus = !currentStatus;
     
     // Optimistic UI update
@@ -231,16 +225,12 @@ export default function App() {
     ));
 
     try {
-      const payload = { action: 'togglePrintStatus', invoiceId, printedStatus: newStatus };
-      const response = await fetch(`${scriptUrl}?method=GET&action=togglePrintStatus&data=${encodeURIComponent(JSON.stringify(payload))}`);
-      const data = await response.json();
-      if (data.status !== 'success') {
-        // Revert on error
-        setDbInvoices(prev => prev.map(inv => 
-          inv.id === invoiceId ? { ...inv, printedStatus: currentStatus } : inv
-        ));
-        console.error('Failed to toggle print status:', data.message);
-      }
+      const { error } = await supabase
+        .from('invoices')
+        .update({ printed_status: newStatus })
+        .eq('id', invoiceId);
+        
+      if (error) throw error;
     } catch (err) {
       // Revert on error
       setDbInvoices(prev => prev.map(inv => 
@@ -248,12 +238,6 @@ export default function App() {
       ));
       console.error('Error toggling print status:', err);
     }
-  };
-
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(`// คัดลอกโค้ดจาก google-apps-script.js ไปวางใน Apps Script`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -311,8 +295,8 @@ export default function App() {
           </ul>
 
           <div className="sidebar-footer">
-            <div>ระบบออกใบเสร็จร้านขนมไทย</div>
-            <div style={{ marginTop: '4px', opacity: 0.7 }}>v1.0.0</div>
+            <div>ระบบออกใบเสร็จ (Supabase)</div>
+            <div style={{ marginTop: '4px', opacity: 0.7 }}>v2.0.0</div>
           </div>
         </aside>
 
@@ -324,39 +308,36 @@ export default function App() {
                 {view === 'generator' && 'ระบบออกใบเสร็จรับเงิน'}
                 {view === 'history' && 'ประวัติการออกใบเสร็จ'}
                 {view === 'dashboard' && 'แดชบอร์ด & สรุปยอดขาย'}
-                {view === 'settings' && 'ตั้งค่าระบบเชื่อมต่อ Google Sheet'}
+                {view === 'products' && 'จัดการสินค้า'}
               </h1>
               <p className="page-subtitle">
-                {view === 'generator' && 'กรอกรายละเอียดเพื่อออกใบเสร็จและบันทึกข้อมูล'}
+                {view === 'generator' && 'กรอกรายละเอียดเพื่อออกใบเสร็จและบันทึกข้อมูลลงฐานข้อมูล Supabase'}
                 {view === 'history' && 'ค้นหาและตรวจสอบใบเสร็จทั้งหมดที่บันทึกเข้าระบบ'}
                 {view === 'dashboard' && 'วิเคราะห์ยอดขายและดูสินค้าขายดีประจำร้าน'}
-                {view === 'settings' && 'เชื่อมโยงข้อมูลเข้ากับบัญชี Google Drive ของคุณ'}
+                {view === 'products' && 'เพิ่มหรือลบสินค้าที่ใช้บ่อย'}
               </p>
             </div>
 
             {/* Sync Status Badge */}
-            {scriptUrl && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: syncStatus === 'success' ? '#d1e7dd' : '#f8d7da', color: syncStatus === 'success' ? '#0f5132' : '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
-                {loading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>กำลังดึงข้อมูล...</span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: syncStatus === 'success' ? '#198754' : '#dc3545' }}></span>
-                    <span>{syncStatus === 'success' ? 'เชื่อมต่อ Google Sheet แล้ว' : 'การเชื่อมต่อผิดพลาด'}</span>
-                  </>
-                )}
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: syncStatus === 'success' ? '#d1e7dd' : '#f8d7da', color: syncStatus === 'success' ? '#0f5132' : '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
+              {loading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>กำลังดึงข้อมูลฐานข้อมูล...</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: syncStatus === 'success' ? '#198754' : '#dc3545' }}></span>
+                  <span>{syncStatus === 'success' ? 'เชื่อมต่อ Supabase แล้ว' : 'การเชื่อมต่อผิดพลาด'}</span>
+                </>
+              )}
+            </div>
           </header>
 
           {/* Main Views */}
           {view === 'generator' && (
             <InvoiceGenerator 
               onSubmitInvoice={handleCreateInvoice} 
-              scriptUrl={scriptUrl} 
               products={dbProducts}
               topProducts={topProducts}
             />
