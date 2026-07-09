@@ -8,6 +8,7 @@ import PrintLayout from './components/PrintLayout';
 import Modal from './components/Modal';
 import LoadingOverlay from './components/LoadingOverlay';
 import ProductManager from './components/ProductManager';
+import BackupManager from './components/BackupManager';
 
 export default function App() {
   const [view, setView] = useState('generator');
@@ -254,6 +255,61 @@ export default function App() {
     }
   };
 
+  const handleDeleteDataByPeriod = (year, month) => {
+    const THAI_MONTH_NAMES = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    const monthName = month === 'all' ? 'ทุกเดือน' : THAI_MONTH_NAMES[parseInt(month)];
+    const yearStr = year === 'all' ? 'ทุกปี' : parseInt(year) + 543;
+    
+    showModal(
+      'ยืนยันการลบข้อมูล',
+      `คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลใบเสร็จของ "${monthName} ปี ${yearStr}" ? ข้อมูลจะถูกลบออกจากฐานข้อมูลแบบถาวรและไม่สามารถกู้คืนได้ (กรุณาดาวน์โหลดสำรองข้อมูลก่อนลบ)`,
+      'delete',
+      async () => {
+        setLoadingMessage('กำลังลบข้อมูล...');
+        setIsOverlayLoading(true);
+        try {
+          const invoicesToDelete = dbInvoices.filter(inv => {
+            if (!inv.date) return false;
+            const d = new Date(inv.date);
+            if (isNaN(d.getTime())) return false;
+            const invYear = d.getFullYear().toString();
+            const invMonth = d.getMonth().toString();
+            const matchYear = year === 'all' || invYear === year;
+            const matchMonth = month === 'all' || invMonth === month;
+            return matchYear && matchMonth;
+          });
+
+          if (invoicesToDelete.length === 0) {
+            showModal('แจ้งเตือน', 'ไม่มีข้อมูลในเดือน/ปี ที่ระบุ', 'info');
+            return;
+          }
+
+          const invoiceIds = invoicesToDelete.map(inv => inv.id);
+
+          const { error: itemsError } = await supabase.from('invoice_items').delete().in('invoice_id', invoiceIds);
+          if (itemsError) throw itemsError;
+
+          const { error: invError } = await supabase.from('invoices').delete().in('id', invoiceIds);
+          if (invError) throw invError;
+
+          await fetchData();
+          showModal('ลบสำเร็จ', `ลบข้อมูล ${invoicesToDelete.length} รายการ เรียบร้อยแล้ว`, 'success');
+        } catch (err) {
+          console.error('Error deleting data:', err);
+          showModal('เกิดข้อผิดพลาด', err.message, 'error');
+        } finally {
+          setIsOverlayLoading(false);
+        }
+      },
+      () => {},
+      'ยืนยันการลบ',
+      'ยกเลิก'
+    );
+  };
+
   return (
     <>
       <LoadingOverlay isVisible={isOverlayLoading} message={loadingMessage} />
@@ -323,6 +379,7 @@ export default function App() {
                 {view === 'history' && 'ประวัติการออกใบเสร็จ'}
                 {view === 'dashboard' && 'สรุปยอดขาย'}
                 {view === 'products' && 'รายการขนม'}
+                {view === 'backup' && 'จัดการข้อมูล (Backup)'}
               </h1>
             </div>
 
@@ -367,6 +424,16 @@ export default function App() {
             <Dashboard 
               invoices={invoices} 
               items={items}
+              onNavigateToBackup={() => setView('backup')}
+            />
+          )}
+
+          {view === 'backup' && (
+            <BackupManager
+              invoices={invoices}
+              items={items}
+              onDeleteData={handleDeleteDataByPeriod}
+              onBack={() => setView('dashboard')}
             />
           )}
 

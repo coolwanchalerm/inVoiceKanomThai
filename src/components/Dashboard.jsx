@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { DollarSign, FileText, ShoppingBag, TrendingUp, Search, Filter } from 'lucide-react';
+import { DollarSign, FileText, ShoppingBag, TrendingUp, Search, Filter, Database, AlertTriangle, ArrowRight } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
 const COLORS = ['#1e3a2b', '#c5a880', '#5c8065', '#d4c5b9', '#3e5c46', '#e5dcd3'];
 
@@ -9,10 +10,31 @@ const THAI_MONTH_NAMES = [
   'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
 ];
 
-export default function Dashboard({ invoices = [], items = [] }) {
+export default function Dashboard({ invoices = [], items = [], onNavigateToBackup }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  
+  const [dbSize, setDbSize] = useState(null);
+
+  useEffect(() => {
+    async function checkDbSize() {
+      try {
+        const { data, error } = await supabase.rpc('get_db_size');
+        if (error) throw error;
+        if (data !== null) {
+          setDbSize(data);
+        }
+      } catch (err) {
+        console.error("Error fetching DB size:", err);
+      }
+    }
+    checkDbSize();
+  }, []);
+
+  const DB_LIMIT_BYTES = 500 * 1024 * 1024; // 500 MB
+  const dbUsagePercent = dbSize !== null ? (dbSize / DB_LIMIT_BYTES) * 100 : 0;
+  const isDbWarning = dbUsagePercent > 80;
 
   // Extract unique years from invoices for the filter dropdown
   const uniqueYears = useMemo(() => {
@@ -175,6 +197,7 @@ export default function Dashboard({ invoices = [], items = [] }) {
         </div>
       </div>
 
+
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -262,6 +285,67 @@ export default function Dashboard({ invoices = [], items = [] }) {
               </ResponsiveContainer>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Database Storage and Backup Section */}
+      <div style={{
+        backgroundColor: isDbWarning ? '#fef2f2' : '#f8fafc',
+        border: `1px solid ${isDbWarning ? '#ef4444' : '#e2e8f0'}`,
+        borderRadius: '16px',
+        padding: '1rem 1.5rem',
+        marginTop: '2rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 100%' }}>
+          <div style={{ padding: '0.75rem', backgroundColor: isDbWarning ? '#fee2e2' : '#e0f2fe', borderRadius: '12px' }}>
+            {isDbWarning ? <AlertTriangle color="#ef4444" size={24} /> : <Database color="#0284c7" size={24} />}
+          </div>
+          <div>
+            <div style={{ fontWeight: '600', color: isDbWarning ? '#ef4444' : '#1e293b', fontSize: '1rem' }}>
+              พื้นที่ฐานข้อมูล (Database Storage)
+            </div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
+              {dbSize === null 
+                ? 'กำลังโหลดข้อมูลความจุ...' 
+                : `ใช้ไปแล้ว ${(dbSize / (1024 * 1024)).toFixed(2)} MB จาก 500 MB`}
+            </div>
+          </div>
+        </div>
+        
+        {dbSize !== null && (
+          <div style={{ flex: '1 1 100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min(dbUsagePercent, 100)}%`,
+                backgroundColor: isDbWarning ? '#ef4444' : '#0284c7',
+                transition: 'width 0.5s ease-out'
+              }}></div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: isDbWarning ? '#ef4444' : '#64748b', fontWeight: '500' }}>
+              {dbUsagePercent.toFixed(1)}%
+            </div>
+          </div>
+        )}
+
+        <div style={{ flex: '1 1 100%', marginTop: '0.5rem' }}>
+          <button 
+            onClick={onNavigateToBackup}
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px',
+              padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: '500', color: '#334155', cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+            }}
+          >
+            จัดการข้อมูล (Backup) <ArrowRight size={16} />
+          </button>
         </div>
       </div>
     </div>
