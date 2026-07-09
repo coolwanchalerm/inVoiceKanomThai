@@ -81,13 +81,18 @@ export default function Dashboard({ invoices = [], items = [] }) {
   const salesChartData = useMemo(() => {
     const dailyMap = {};
     filteredData.invoices.forEach(inv => {
-      const key = inv.date || 'unknown';
-      if (!dailyMap[key]) {
-        let dStr = 'ไม่ระบุวันที่';
-        if (inv.date) {
-          const d = new Date(inv.date);
+      let key = 'unknown';
+      let dStr = 'ไม่ระบุวันที่';
+      
+      if (inv.date) {
+        const d = new Date(inv.date);
+        if (!isNaN(d.getTime())) {
+          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           dStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
         }
+      }
+
+      if (!dailyMap[key]) {
         dailyMap[key] = { label: dStr, amount: 0 };
       }
       dailyMap[key].amount += (inv.totalAmount || 0);
