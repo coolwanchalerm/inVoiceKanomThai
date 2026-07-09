@@ -215,6 +215,16 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(30, 58, 43, 0.1);
 }
 
+/* Hide native number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Receipt items table builder */
 .items-builder-table {
   width: 100%;

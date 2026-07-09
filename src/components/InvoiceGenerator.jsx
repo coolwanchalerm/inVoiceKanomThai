@@ -152,6 +152,50 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
           </div>
         </div>
 
+        {/* Add New Item Form */}
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            
+            {/* Presets */}
+            {topProducts.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>แนะนำด่วน (คลิกเพื่อเพิ่ม)</div>
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="hide-scrollbar">
+                  {topProducts.map((preset, idx) => (
+                    <button key={idx} type="button" onClick={() => applyPreset(preset)} style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                      <Plus size={12} color="var(--primary-color)" />
+                      {preset.description} <span style={{ color: '#94a3b8' }}>฿{preset.unitPrice}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 100%' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>เพิ่มรายการใหม่</div>
+                <input type="text" list="products-list" placeholder="ชื่อขนม..." value={newItem.description} onChange={(e) => { const val = e.target.value; setNewItem(prev => { const updated = { ...prev, description: val }; const matchedProduct = products.find(p => p.name === val); if (matchedProduct) { updated.unitPrice = matchedProduct.price; } return updated; }); }} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '1rem' }} />
+                <datalist id="products-list">
+                  {products.map(p => (
+                    <option key={p.id} value={p.name} />
+                  ))}
+                </datalist>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
+                <input type="number" min="1" value={newItem.quantity} onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} />
+              </div>
+              <div style={{ flex: 1.5 }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา</div>
+                <input type="number" min="0" value={newItem.unitPrice} onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} />
+              </div>
+              <button type="button" onClick={addItem} style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', color: '#1e293b', fontWeight: '600', cursor: 'pointer', height: '47px', fontSize: '1rem' }}>
+                เพิ่ม
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Selected Items Card List */}
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -164,7 +208,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
               <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
                 <Package size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
                 <div style={{ fontSize: '1.1rem', fontWeight: '500', color: '#64748b' }}>ยังไม่มีรายการสินค้า</div>
-                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>เพิ่มรายการด้านล่างเพื่อเริ่มต้น</div>
+                <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>เพิ่มรายการด้านบนเพื่อเริ่มต้น</div>
               </div>
             ) : (
               items.map((item) => (
@@ -204,50 +248,6 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                 </div>
               ))
             )}
-          </div>
-        </div>
-
-        {/* Add New Item Form */}
-        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            
-            {/* Presets */}
-            {topProducts.length > 0 && (
-              <div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>แนะนำด่วน (คลิกเพื่อเพิ่ม)</div>
-                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="hide-scrollbar">
-                  {topProducts.map((preset, idx) => (
-                    <button key={idx} type="button" onClick={() => applyPreset(preset)} style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
-                      <Plus size={12} color="var(--primary-color)" />
-                      {preset.description} <span style={{ color: '#94a3b8' }}>฿{preset.unitPrice}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 200px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>เพิ่มรายการใหม่</div>
-                <input type="text" list="products-list" placeholder="ชื่อขนม..." value={newItem.description} onChange={(e) => { const val = e.target.value; setNewItem(prev => { const updated = { ...prev, description: val }; const matchedProduct = products.find(p => p.name === val); if (matchedProduct) { updated.unitPrice = matchedProduct.price; } return updated; }); }} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
-                <datalist id="products-list">
-                  {products.map(p => (
-                    <option key={p.id} value={p.name} />
-                  ))}
-                </datalist>
-              </div>
-              <div style={{ width: '70px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
-                <input type="number" min="1" value={newItem.quantity} onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }} />
-              </div>
-              <div style={{ width: '90px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา</div>
-                <input type="number" min="0" value={newItem.unitPrice} onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }} />
-              </div>
-              <button type="button" onClick={addItem} style={{ padding: '0.6rem 1rem', borderRadius: '8px', border: 'none', backgroundColor: '#e2e8f0', color: '#1e293b', fontWeight: '600', cursor: 'pointer', height: '41px' }}>
-                เพิ่ม
-              </button>
-            </div>
           </div>
         </div>
 
