@@ -231,22 +231,23 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                     </button>
                   </div>
                   
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>จำนวน:</div>
-                      <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: '20px', padding: '0.25rem' }}>
-                        <button type="button" style={{ border: 'none', backgroundColor: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} onClick={() => handleItemChange(item.id, 'quantity', Math.max(1, Number(item.quantity) - 1))}>-</button>
-                        <input type="number" min="1" value={item.quantity} onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} style={{ width: '45px', padding: 0, margin: '0 4px', textAlign: 'center', border: 'none', background: 'transparent', outline: 'none', fontWeight: '600' }} />
-                        <button type="button" style={{ border: 'none', backgroundColor: '#fff', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} onClick={() => handleItemChange(item.id, 'quantity', Number(item.quantity) + 1)}>+</button>
-                      </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
+                      <select 
+                        value={item.quantity} 
+                        onChange={(e) => handleItemChange(item.id, 'quantity', Number(e.target.value))}
+                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: '#1e293b', height: '47px' }}
+                      >
+                        {Array.from({ length: 50 }, (_, i) => i + 1).map(num => (
+                          <option key={num} value={num}>{num}</option>
+                        ))}
+                      </select>
                     </div>
                     
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>ราคา/หน่วย:</div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>฿</span>
-                        <input type="number" min="0" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} style={{ width: '70px', padding: 0, textAlign: 'right', border: 'none', background: 'transparent', outline: 'none', fontWeight: '500' }} />
-                      </div>
+                    <div style={{ flex: 1.5 }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา/หน่วย</div>
+                      <input type="number" min="0" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} />
                     </div>
                   </div>
                   

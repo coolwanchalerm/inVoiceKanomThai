@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 const LINE_ACCESS_TOKEN = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -23,45 +24,142 @@ async function replyLineFlex(replyToken: string, altText: string, flexContents: 
   });
 }
 
-function parseItem(text: string) {
-  const parts = text.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  
-  let unitPrice = 0;
-  let quantity = 1;
-  let description = '';
-
-  const lastPart = parts[parts.length - 1];
-  const secondLastPart = parts[parts.length - 2];
-
-  if (parts.length >= 3 && !isNaN(Number(lastPart)) && !isNaN(Number(secondLastPart))) {
-    unitPrice = Number(lastPart);
-    quantity = Number(secondLastPart);
-    description = parts.slice(0, -2).join(' ');
-  } else if (!isNaN(Number(lastPart))) {
-    quantity = Number(lastPart);
-    description = parts.slice(0, -1).join(' ');
-  } else {
-    return null;
+function createPromptFlex(title: string, text: string, subText: string, buttons: any[]) {
+  const contents = [
+    { type: "text", text: text, wrap: true, size: "md" }
+  ];
+  if (subText) {
+    contents.push({ type: "text", text: subText, wrap: true, size: "sm", color: "#aaaaaa", margin: "md" });
   }
-  return { description, quantity, unitPrice, amount: quantity * unitPrice };
+
+  const footerButtons = buttons.map(b => {
+    let button = {
+      type: "button",
+      style: b.style || "secondary",
+      height: "sm",
+      action: {
+        type: "message",
+        label: b.label,
+        text: b.text
+      }
+    };
+    if (b.color) (button as any).color = b.color;
+    return button;
+  });
+
+  return {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        { type: "text", text: title, weight: "bold", color: "#ffffff", size: "md" }
+      ],
+      backgroundColor: "#1DB446"
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: contents
+    },
+    footer: {
+      type: "box",
+      layout: "horizontal",
+      spacing: "sm",
+      contents: footerButtons
+    }
+  };
 }
 
-function parseDate(dayStr: string) {
-  if (dayStr.includes('วัน')) {
-    const now = new Date();
-    now.setUTCHours(now.getUTCHours() + 7);
-    return now.toISOString().split('T')[0];
-  }
-  const day = parseInt(dayStr);
-  if (isNaN(day) || day < 1 || day > 31) return null;
-  
+async function extractDataWithGroq(userText: string, currentDraft: any, askingFor: string) {
   const now = new Date();
   now.setUTCHours(now.getUTCHours() + 7);
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const dayPadded = String(day).padStart(2, '0');
-  return `${year}-${month}-${dayPadded}`;
+  const cYear = now.getUTCFullYear();
+  const cMonth = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const cDate = String(now.getUTCDate()).padStart(2, '0');
+
+  let dynamicRule = "";
+  if (askingFor === "customerName") {
+      dynamicRule = `2. **โฟกัสปัจจุบัน (ชื่อลูกค้า)**: ตอนนี้ระบบต้องการ customerName
+   - หากลูกค้าพิมพ์ข้อความสั้นๆ (เช่น น้ำหวาน, ลูกค้าทั่วไป) ให้ใส่ใน customerName ทันที ห้ามใส่ช่องอื่น
+   - หากลูกค้าส่งรายการยาวๆ มา ห้ามเอาคำว่า "สรุปออเดอร์", "บิล", "รวม" มาเป็นชื่อลูกค้า หากไม่มีชื่อคนจริงๆ ให้ปล่อย customerName เป็น null`;
+  } else if (askingFor === "date") {
+      dynamicRule = `2. **โฟกัสปัจจุบัน (วันที่)**: ตอนนี้ระบบต้องการ date
+   - หากลูกค้าพิมพ์สั้นๆ หรือตัวเลขโดดๆ ให้ถือว่าเป็นวันที่ทันที`;
+  } else if (askingFor === "customerAddress") {
+      dynamicRule = `2. **โฟกัสปัจจุบัน (ที่อยู่)**: ตอนนี้ระบบต้องการ customerAddress
+   - หากลูกค้าพิมพ์ข้อความสั้นๆ (เช่น สกลราช, โรงเรียน, ส่งบ้าน) ให้ใส่ใน customerAddress ทันที ห้ามตีความเป็นสินค้าเด็ดขาด`;
+  } else if (askingFor === "customerTaxId") {
+      dynamicRule = `2. **โฟกัสปัจจุบัน (เลขภาษี)**: ตอนนี้ระบบต้องการ customerTaxId
+   - หากลูกค้าพิมพ์สั้นๆ ให้ถือเป็นเลขภาษีทันที`;
+  } else {
+      dynamicRule = `2. นำข้อมูลไปเติมในช่องที่ยังว่าง (null) ให้ถูกต้อง`;
+  }
+
+  const prompt = `
+คุณเป็นผู้ช่วยรับออเดอร์ร้านขนมไทย
+หน้าที่ของคุณคือดึงข้อมูลจากข้อความของลูกค้า มาอัปเดตแบบฟอร์ม JSON ให้สมบูรณ์
+
+ข้อมูลปัจจุบัน (Draft):
+${JSON.stringify(currentDraft)}
+
+ข้อความล่าสุดจากลูกค้า:
+"${userText}"
+
+คำแนะนำ:
+1. นำข้อมูลจากข้อความล่าสุด ไปเติมในช่องที่ยังว่าง (null) หรือแก้ไขช่องเดิมหากลูกค้าต้องการแก้
+${dynamicRule}
+3. ข้อมูล "date" ต้องแปลงเป็นรูปแบบ YYYY-MM-DD (ค.ศ.) เท่านั้น!
+   - ปีปัจจุบันคือ ${cYear}, เดือนปัจจุบันคือ ${cMonth}, วันนี้คือ ${cYear}-${cMonth}-${cDate}
+   - หากลูกค้าพิมพ์ตัวเลขโดดๆ (เช่น 12) ให้ถือว่าเป็นวันที่ของเดือนนี้ -> "${cYear}-${cMonth}-12"
+   - หากลูกค้าพิมพ์ "วันนี้" ให้ใส่ "${cYear}-${cMonth}-${cDate}"
+   - หากลูกค้าระบุปีเป็น พ.ศ. (เช่น 69 หรือ 2569) ให้ลบ 543 เป็น ค.ศ. เสมอ
+4. หากลูกค้าพิมพ์คำว่า "ข้าม" หรือ "-" สำหรับที่อยู่หรือเลขภาษี ให้ใส่ "-"
+5. ช่อง items ให้เป็น array ของ object: { "description": string, "quantity": number, "unitPrice": number, "amount": number }
+   (หากไม่ระบุราคา ให้ใส่ unitPrice=0, amount=quantity*unitPrice)
+6. หากข้อมูลเก่าช่องไหนดีอยู่แล้ว ห้ามลบข้อมูลเก่าทิ้งเด็ดขาด 
+7. ส่งกลับมาแค่ก้อน JSON เท่านั้น ห้ามมีคำอธิบาย
+
+โครงสร้าง JSON (มีเท่านี้):
+{
+  "customerName": "...",
+  "customerAddress": "...",
+  "customerTaxId": "...",
+  "date": "...",
+  "items": [
+    { "description": "...", "quantity": 1, "unitPrice": 10, "amount": 10 }
+  ]
+}`;
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0
+      })
+    });
+    
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error("Groq API Error: " + errText);
+    }
+
+    const data = await res.json();
+    if (data.choices && data.choices[0].message.content) {
+      return JSON.parse(data.choices[0].message.content);
+    }
+  } catch(e: any) {
+    throw new Error("Parse Error: " + e.message);
+  }
+  return currentDraft;
 }
 
 serve(async (req) => {
@@ -89,10 +187,19 @@ serve(async (req) => {
           if (userText === 'สร้างบิล' || userText === 'บิลใหม่') {
             await supabase.from('bot_states').upsert({
               line_user_id: lineUserId,
-              current_step: 'WAITING_NAME',
-              draft_data: { items: [] }
+              current_step: 'FILLING',
+              draft_data: { customerName: null, customerAddress: null, customerTaxId: null, date: null, items: [] }
             });
-            await replyLineMessage(replyToken, "📝 เริ่มสร้างบิลใหม่\nขอทราบ **ชื่อลูกค้า** ครับ");
+            const flex = createPromptFlex(
+              "📝 เริ่มสร้างบิลใหม่", 
+              "ขอทราบ **ชื่อลูกค้า** ครับ", 
+              "(หรือพิมพ์ข้อมูลทั้งหมดรวดเดียวมาได้เลย)", 
+              [
+                { label: "ลูกค้าทั่วไป", text: "ลูกค้าทั่วไป", style: "primary" },
+                { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+              ]
+            );
+            await replyLineFlex(replyToken, "ขอทราบชื่อลูกค้า", flex);
             continue;
           }
 
@@ -103,153 +210,216 @@ serve(async (req) => {
             .eq('line_user_id', lineUserId)
             .single();
 
-          if (!stateData) {
-            await replyLineMessage(replyToken, "หากต้องการสร้างบิลใหม่ พิมพ์คำว่า **สร้างบิล** ได้เลยครับ");
+          let draft = stateData?.draft_data || { customerName: null, customerAddress: null, customerTaxId: null, date: null, items: [] };
+
+          if (userText === 'แก้ไขข้อมูล' && stateData?.current_step === 'CONFIRM') {
+             await replyLineMessage(replyToken, "✏️ พิมพ์สิ่งที่คุณต้องการแก้ไขส่งมาได้เลยครับ\n(เช่น 'แก้ชื่อเป็นสมชาย', 'เปลี่ยนที่อยู่เป็น...', 'เพิ่มขนมชั้น 5 ชิ้น')");
+             continue;
+          }
+
+          if (userText === 'ยืนยัน' && stateData?.current_step === 'CONFIRM') {
+            // Save to DB
+            const invoiceId = Date.now().toString();
+            const { data: invData, error: invError } = await supabase
+              .from('invoices')
+              .insert({
+                id: invoiceId,
+                customer_name: draft.customerName,
+                customer_address: draft.customerAddress || "-",
+                customer_tax_id: draft.customerTaxId || "-",
+                date: draft.date,
+                total_amount: draft.totalAmount || 0
+              })
+              .select()
+              .single();
+
+            if (invError) throw invError;
+
+            const itemsToInsert = draft.items.map((it: any) => ({
+              invoice_id: invoiceId,
+              description: it.description,
+              quantity: it.quantity,
+              unit_price: it.unitPrice,
+              amount: it.amount
+            }));
+
+            if (itemsToInsert.length > 0) {
+                const { error: itemsError } = await supabase.from('invoice_items').insert(itemsToInsert);
+                if (itemsError) throw itemsError;
+            }
+
+            // Clear state
+            await supabase.from('bot_states').delete().eq('line_user_id', lineUserId);
+            
+            // Build Flex Message (Success)
+            const itemBoxes = draft.items.map((it: any) => ({
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                { type: "text", text: `${it.description} ฿${it.unitPrice} x${it.quantity}`, size: "sm", color: "#555555", flex: 0, wrap: true },
+                { type: "text", text: `฿${it.amount}`, size: "sm", color: "#111111", align: "end" }
+              ]
+            }));
+
+            const flexContents = {
+              type: "bubble",
+              header: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  { type: "text", text: "RECEIPT", weight: "bold", color: "#1DB446", size: "sm" },
+                  { type: "text", text: "บิลเงินสด", weight: "bold", size: "xl", margin: "md" },
+                  { type: "text", text: "บันทึกข้อมูลเข้าระบบเรียบร้อย", size: "xs", color: "#aaaaaa", wrap: true }
+                ]
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  { type: "separator", margin: "xxl" },
+                  {
+                    type: "box", layout: "vertical", margin: "xxl", spacing: "sm",
+                    contents: [
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "ลูกค้า", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.customerName, size: "sm", color: "#111111", align: "end" } ] },
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "วันที่", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.date, size: "sm", color: "#111111", align: "end" } ] }
+                    ]
+                  },
+                  { type: "separator", margin: "xxl" },
+                  { type: "box", layout: "vertical", margin: "xxl", spacing: "sm", contents: itemBoxes },
+                  { type: "separator", margin: "xxl" },
+                  {
+                    type: "box", layout: "horizontal", margin: "md",
+                    contents: [
+                      { type: "text", text: "ยอดรวม", size: "md", color: "#555555" },
+                      { type: "text", text: `฿${draft.totalAmount || 0}`, size: "lg", color: "#1DB446", align: "end", weight: "bold" }
+                    ]
+                  }
+                ]
+              },
+              styles: { footer: { separator: true } }
+            };
+            
+            await replyLineFlex(replyToken, "✅ บันทึกบิลสำเร็จ", flexContents);
             continue;
           }
 
-          const step = stateData.current_step;
-          let draft = stateData.draft_data || { items: [] };
+          let askingFor = "";
+          if (!draft.customerName) askingFor = "customerName";
+          else if (!draft.date) askingFor = "date";
+          else if (!draft.customerAddress) askingFor = "customerAddress";
+          else if (!draft.customerTaxId) askingFor = "customerTaxId";
+          else if (!draft.items || draft.items.length === 0) askingFor = "items";
 
-          if (step === 'WAITING_NAME') {
-            draft.customerName = userText;
-            await supabase.from('bot_states').update({ current_step: 'WAITING_ADDRESS', draft_data: draft }).eq('line_user_id', lineUserId);
-            await replyLineMessage(replyToken, `ลูกค้า: ${userText}\n\nขอทราบ **ที่อยู่ลูกค้า** ครับ\n(หากไม่มีที่อยู่ ให้พิมพ์ - หรือ ข้าม)`);
+          // Use AI to extract data
+          draft = await extractDataWithGroq(userText, draft, askingFor);
           
-          } else if (step === 'WAITING_ADDRESS') {
-            draft.customerAddress = (userText === 'ข้าม' || userText === '-') ? '-' : userText;
-            await supabase.from('bot_states').update({ current_step: 'WAITING_TAX_ID', draft_data: draft }).eq('line_user_id', lineUserId);
-            await replyLineMessage(replyToken, `ที่อยู่: ${draft.customerAddress}\n\nขอทราบ **เลขประจำตัวผู้เสียภาษี** ครับ\n(หากไม่มี ให้พิมพ์ - หรือ ข้าม)`);
+          const totalAmount = draft.items?.reduce((sum: number, it: any) => sum + (it.amount || 0), 0) || 0;
+          draft.totalAmount = totalAmount;
 
-          } else if (step === 'WAITING_TAX_ID') {
-            draft.customerTaxId = (userText === 'ข้าม' || userText === '-') ? '-' : userText;
-            await supabase.from('bot_states').update({ current_step: 'WAITING_DATE', draft_data: draft }).eq('line_user_id', lineUserId);
-            await replyLineMessage(replyToken, `เลขผู้เสียภาษี: ${draft.customerTaxId}\n\nขอทราบ **วันที่** ครับ\n(พิมพ์เฉพาะตัวเลขวันที่ เช่น 18 หรือพิมพ์ วันนี้)`);
-          
-          } else if (step === 'WAITING_DATE') {
-            const parsedDate = parseDate(userText);
-            if (!parsedDate) {
-              await replyLineMessage(replyToken, "❌ รูปแบบวันที่ไม่ถูกต้อง กรุณาพิมพ์แค่ตัวเลข (เช่น 18) หรือพิมพ์ 'วันนี้'");
-              continue;
-            }
-            draft.date = parsedDate;
-            await supabase.from('bot_states').update({ current_step: 'WAITING_ITEMS', draft_data: draft }).eq('line_user_id', lineUserId);
-            await replyLineMessage(replyToken, `วันที่: ${parsedDate}\n\nกรุณาพิมพ์ **รายการสินค้า จำนวนชิ้น (และราคาชุดละ)**\nเช่น 'ขนมชั้น 15 35' หรือ 'ตะโก้ 10'\n(หากเพิ่มครบแล้ว พิมพ์คำว่า **พอแล้ว**)`);
-          
-          } else if (step === 'WAITING_ITEMS') {
-            if (userText === 'พอแล้ว') {
-              if (draft.items.length === 0) {
-                await replyLineMessage(replyToken, "ยังไม่มีรายการสินค้าเลยครับ กรุณาเพิ่มสินค้าก่อน หรือพิมพ์ 'ยกเลิก'");
-                continue;
-              }
-              const totalAmount = draft.items.reduce((sum: number, item: any) => sum + item.amount, 0);
-              draft.totalAmount = totalAmount;
-              await supabase.from('bot_states').update({ current_step: 'CONFIRM', draft_data: draft }).eq('line_user_id', lineUserId);
-              
-              let summaryMsg = `🧾 **สรุปบิล**\nลูกค้า: ${draft.customerName}\nวันที่: ${draft.date}\n\n`;
-              draft.items.forEach((it: any, idx: number) => {
-                summaryMsg += `${idx+1}. ${it.description} x${it.quantity} (${it.amount} บ.)\n`;
-              });
-              summaryMsg += `\nยอดรวม: **${totalAmount} บาท**\n\nยืนยันการบันทึกหรือไม่?\n(พิมพ์ **ยืนยัน** หรือ **ยกเลิก**)`;
-              
-              await replyLineMessage(replyToken, summaryMsg);
-            } else {
-              const item = parseItem(userText);
-              if (!item) {
-                await replyLineMessage(replyToken, "❌ รูปแบบไม่ถูกต้อง\nกรุณาพิมพ์ ชื่อสินค้า เว้นวรรค จำนวน เว้นวรรค ราคา\nเช่น 'ขนมชั้น 15 35'");
-                continue;
-              }
-              if (!draft.items) draft.items = [];
-              draft.items.push(item);
-              await supabase.from('bot_states').update({ draft_data: draft }).eq('line_user_id', lineUserId);
-              await replyLineMessage(replyToken, `✅ เพิ่ม ${item.description} จำนวน ${item.quantity} เรียบร้อย\n\nมีรายการอื่นอีกไหมครับ?\n(พิมพ์รายการต่อได้เลย หรือพิมพ์ **พอแล้ว** เพื่อสรุปยอด)`);
-            }
+          await supabase.from('bot_states').upsert({
+            line_user_id: lineUserId,
+            current_step: 'FILLING',
+            draft_data: draft
+          });
 
-          } else if (step === 'CONFIRM') {
-            if (userText === 'ยืนยัน') {
-              // Save to DB
-              const invoiceId = Date.now();
-              const { data: invData, error: invError } = await supabase
-                .from('invoices')
-                .insert({
-                  id: invoiceId,
-                  customer_name: draft.customerName,
-                  customer_address: draft.customerAddress || "-",
-                  customer_tax_id: draft.customerTaxId || "-",
-                  date: draft.date,
-                  total_amount: draft.totalAmount || 0
-                })
-                .select()
-                .single();
+          // Check for missing slots
+          if (!draft.customerName) {
+            const flex = createPromptFlex("📝 ต้องการข้อมูลเพิ่มเติม", "ขอทราบ **ชื่อลูกค้า** ครับ", "", [
+              { label: "ลูกค้าทั่วไป", text: "ลูกค้าทั่วไป", style: "primary" },
+              { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+            ]);
+            await replyLineFlex(replyToken, "ขอทราบชื่อลูกค้า", flex);
+            
+          } else if (!draft.date) {
+            const flex = createPromptFlex("📝 ต้องการข้อมูลเพิ่มเติม", "ขอทราบวันที่ครับ (พิมพ์ตัวเลข)", "", [
+              { label: "วันนี้", text: "วันนี้", style: "primary" },
+              { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+            ]);
+            await replyLineFlex(replyToken, "ขอทราบวันที่", flex);
+            
+          } else if (!draft.customerAddress) {
+            const flex = createPromptFlex("📝 ต้องการข้อมูลเพิ่มเติม", "ขอทราบ **ที่อยู่** ครับ", "(ถ้าไม่มีพิมพ์ 'ข้าม' หรือ '-')", [
+              { label: "ข้าม", text: "ข้าม", style: "primary" },
+              { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+            ]);
+            await replyLineFlex(replyToken, "ขอทราบที่อยู่", flex);
+            
+          } else if (!draft.customerTaxId) {
+            const flex = createPromptFlex("📝 ต้องการข้อมูลเพิ่มเติม", "ขอทราบ **เลขประจำตัวผู้เสียภาษี** ครับ", "(ถ้าไม่มีพิมพ์ 'ข้าม' หรือ '-')", [
+              { label: "ข้าม", text: "ข้าม", style: "primary" },
+              { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+            ]);
+            await replyLineFlex(replyToken, "ขอทราบเลขภาษี", flex);
+            
+          } else if (!draft.items || draft.items.length === 0) {
+            const flex = createPromptFlex("📝 ต้องการข้อมูลเพิ่มเติม", "ขอทราบ **รายการสินค้า** ครับ", "พิมพ์ชื่อสินค้า จำนวน และราคามาได้เลย", [
+              { label: "ยกเลิก", text: "ยกเลิก", style: "link", color: "#ff3344" }
+            ]);
+            await replyLineFlex(replyToken, "ขอทราบรายการสินค้า", flex);
+            
+          } else {
+            // All filled! Prompt for confirmation
+            await supabase.from('bot_states').update({ current_step: 'CONFIRM' }).eq('line_user_id', lineUserId);
+            
+            const itemBoxes = draft.items.map((it: any) => ({
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                { type: "text", text: `${it.description} ฿${it.unitPrice} x${it.quantity}`, size: "sm", color: "#555555", flex: 0, wrap: true },
+                { type: "text", text: `฿${it.amount}`, size: "sm", color: "#111111", align: "end" }
+              ]
+            }));
 
-              if (invError) throw invError;
-
-              const itemsToInsert = draft.items.map((it: any) => ({
-                invoice_id: invoiceId,
-                description: it.description,
-                quantity: it.quantity,
-                unit_price: it.unitPrice,
-                amount: it.amount
-              }));
-
-              const { error: itemsError } = await supabase.from('invoice_items').insert(itemsToInsert);
-              if (itemsError) throw itemsError;
-
-              // Clear state
-              await supabase.from('bot_states').delete().eq('line_user_id', lineUserId);
-              
-              // Build Flex Message
-              const itemBoxes = draft.items.map((it: any) => ({
+            const confirmFlexContents = {
+              type: "bubble",
+              header: {
                 type: "box",
-                layout: "horizontal",
+                layout: "vertical",
                 contents: [
-                  { type: "text", text: `${it.description} x${it.quantity}`, size: "sm", color: "#555555", flex: 0 },
-                  { type: "text", text: `฿${it.amount}`, size: "sm", color: "#111111", align: "end" }
+                  { type: "text", text: "ตรวจสอบข้อมูล", weight: "bold", color: "#ffffff", size: "md" }
+                ],
+                backgroundColor: "#1DB446"
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  { type: "text", text: "ตรวจสอบข้อมูลให้ถูกต้องก่อนบันทึก", size: "xs", color: "#aaaaaa", wrap: true },
+                  { type: "separator", margin: "md" },
+                  {
+                    type: "box", layout: "vertical", margin: "md", spacing: "sm",
+                    contents: [
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "ลูกค้า", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.customerName, size: "sm", color: "#111111", align: "end", wrap: true } ] },
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "ที่อยู่", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.customerAddress, size: "sm", color: "#111111", align: "end", wrap: true } ] },
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "เลขภาษี", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.customerTaxId, size: "sm", color: "#111111", align: "end", wrap: true } ] },
+                      { type: "box", layout: "horizontal", contents: [ { type: "text", text: "วันที่", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.date, size: "sm", color: "#111111", align: "end", wrap: true } ] }
+                    ]
+                  },
+                  { type: "separator", margin: "md" },
+                  { type: "box", layout: "vertical", margin: "md", spacing: "sm", contents: itemBoxes },
+                  { type: "separator", margin: "md" },
+                  {
+                    type: "box", layout: "horizontal", margin: "md",
+                    contents: [
+                      { type: "text", text: "ยอดรวม", size: "md", color: "#555555" },
+                      { type: "text", text: `฿${draft.totalAmount || 0}`, size: "lg", color: "#1DB446", align: "end", weight: "bold" }
+                    ]
+                  }
                 ]
-              }));
-
-              const flexContents = {
-                type: "bubble",
-                header: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    { type: "text", text: "RECEIPT", weight: "bold", color: "#1DB446", size: "sm" },
-                    { type: "text", text: "บิลเงินสด", weight: "bold", size: "xl", margin: "md" },
-                    { type: "text", text: "บันทึกข้อมูลเข้าระบบเรียบร้อย", size: "xs", color: "#aaaaaa", wrap: true }
-                  ]
-                },
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    { type: "separator", margin: "xxl" },
-                    {
-                      type: "box", layout: "vertical", margin: "xxl", spacing: "sm",
-                      contents: [
-                        { type: "box", layout: "horizontal", contents: [ { type: "text", text: "ลูกค้า", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.customerName, size: "sm", color: "#111111", align: "end" } ] },
-                        { type: "box", layout: "horizontal", contents: [ { type: "text", text: "วันที่", size: "sm", color: "#555555", flex: 0 }, { type: "text", text: draft.date, size: "sm", color: "#111111", align: "end" } ] }
-                      ]
-                    },
-                    { type: "separator", margin: "xxl" },
-                    { type: "box", layout: "vertical", margin: "xxl", spacing: "sm", contents: itemBoxes },
-                    { type: "separator", margin: "xxl" },
-                    {
-                      type: "box", layout: "horizontal", margin: "md",
-                      contents: [
-                        { type: "text", text: "ยอดรวม", size: "md", color: "#555555" },
-                        { type: "text", text: `฿${draft.totalAmount || 0}`, size: "lg", color: "#1DB446", align: "end", weight: "bold" }
-                      ]
-                    }
-                  ]
-                },
-                styles: { footer: { separator: true } }
-              };
-              
-              await replyLineFlex(replyToken, "✅ บันทึกบิลสำเร็จ", flexContents);
-            } else {
-              await replyLineMessage(replyToken, "พิมพ์ **ยืนยัน** เพื่อบันทึก หรือ **ยกเลิก** เพื่อลบข้อมูลบิลนี้ครับ");
-            }
+              },
+              footer: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                contents: [
+                  { type: "button", style: "primary", height: "sm", action: { type: "message", label: "ยืนยัน (ถูกต้อง)", text: "ยืนยัน" } },
+                  { type: "button", style: "secondary", height: "sm", action: { type: "message", label: "แก้ไขข้อมูล", text: "แก้ไขข้อมูล" } },
+                  { type: "button", style: "link", color: "#ff3344", height: "sm", action: { type: "message", label: "ยกเลิก (เริ่มใหม่)", text: "ยกเลิก" } }
+                ]
+              }
+            };
+            
+            await replyLineFlex(replyToken, "ตรวจสอบข้อมูลก่อนบันทึก", confirmFlexContents);
           }
 
         } catch (err: any) {
