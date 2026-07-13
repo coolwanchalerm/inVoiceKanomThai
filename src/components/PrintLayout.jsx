@@ -21,17 +21,8 @@ const formatThaiDate = (dateStr) => {
 export default function PrintLayout({ invoice, items = [] }) {
   if (!invoice) return null;
 
-  // Adds exactly 2 empty rows to the end of the items list
+  // removed empty padding rows
   const paddedItems = [...items];
-  for (let i = 0; i < 2; i++) {
-    paddedItems.push({
-      id: `empty-${Date.now()}-${i}`,
-      description: '',
-      quantity: '',
-      unitPrice: '',
-      amount: ''
-    });
-  }
 
   return (
     <div className="print-only-container">

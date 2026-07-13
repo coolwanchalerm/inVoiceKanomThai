@@ -408,7 +408,7 @@ input[type="number"] {
 @media print {
   @page {
     size: A5;
-    margin: 10mm;
+    margin: 5mm;
   }
   body {
     background-color: #ffffff;

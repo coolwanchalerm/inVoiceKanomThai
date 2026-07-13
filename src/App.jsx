@@ -21,6 +21,7 @@ export default function App() {
 
   const [printInvoice, setPrintInvoice] = useState(null);
   const [printItems, setPrintItems] = useState([]);
+  const [invoiceToEdit, setInvoiceToEdit] = useState(null);
   
   // UI States
   const [isOverlayLoading, setIsOverlayLoading] = useState(false);
@@ -72,9 +73,19 @@ export default function App() {
         amount: item.amount
       }));
 
+      const formattedProducts = (productsRes.data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        hasPromotion: p.has_promotion || false,
+        promoQty: p.promo_qty || null,
+        promoPrice: p.promo_price || null,
+        createdAt: p.created_at
+      }));
+
       setDbInvoices(formattedInvoices);
       setDbItems(formattedItems);
-      setDbProducts(productsRes.data || []);
+      setDbProducts(formattedProducts);
       setSyncStatus('success');
     } catch (error) {
       console.error('Failed to fetch from Supabase:', error);
@@ -125,13 +136,19 @@ export default function App() {
     setLoadingMessage('กำลังบันทึกข้อมูลสินค้า...');
     setIsOverlayLoading(true);
     try {
+      const payload = {
+        name: product.name,
+        price: product.price,
+        has_promotion: product.hasPromotion || false,
+        promo_qty: product.hasPromotion ? (product.promoQty || null) : null,
+        promo_price: product.hasPromotion ? (product.promoPrice || null) : null
+      };
+
       if (subAction === 'add') {
-        const { error } = await supabase.from('products').insert([
-          { name: product.name, price: product.price }
-        ]);
+        const { error } = await supabase.from('products').insert([payload]);
         if (error) throw error;
       } else if (subAction === 'edit') {
-        const { error } = await supabase.from('products').update({ name: product.name, price: product.price }).eq('id', product.id);
+        const { error } = await supabase.from('products').update(payload).eq('id', product.id);
         if (error) throw error;
       } else if (subAction === 'delete') {
         const { error } = await supabase.from('products').delete().eq('id', product.id);
@@ -150,19 +167,25 @@ export default function App() {
     setLoadingMessage('กำลังบันทึกลงระบบฐานข้อมูล...');
     setIsOverlayLoading(true);
     try {
-      // 1. Insert Invoice
-      const { error: invError } = await supabase.from('invoices').insert([{
+      // 1. Upsert Invoice
+      const { error: invError } = await supabase.from('invoices').upsert([{
         id: invoice.id,
         date: invoice.date,
         customer_name: invoice.customerName,
         customer_address: invoice.customerAddress || "",
         customer_tax_id: invoice.customerTaxId || "",
         total_amount: invoice.totalAmount,
-        printed_status: false
+        printed_status: invoice.printedStatus || false
       }]);
       if (invError) throw invError;
 
-      // 2. Insert Items
+      // 2. Delete existing items if editing
+      if (invoiceToEdit && invoiceToEdit.id === invoice.id) {
+        const { error: deleteItemsError } = await supabase.from('invoice_items').delete().eq('invoice_id', invoice.id);
+        if (deleteItemsError) throw deleteItemsError;
+      }
+
+      // 3. Insert Items
       const itemsToInsert = invoiceItems.map(item => ({
         invoice_id: invoice.id,
         description: item.description,
@@ -175,6 +198,8 @@ export default function App() {
       if (itemsError) throw itemsError;
       
       await fetchData();
+      setInvoiceToEdit(null); // Clear edit state
+
       
       // Prepare state for printing
       setPrintInvoice(invoice);
@@ -201,6 +226,14 @@ export default function App() {
     setTimeout(() => {
       window.print();
     }, 100);
+  };
+
+  const handleEditInvoice = (invoiceId) => {
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (!invoice) return;
+    const invoiceItems = items.filter(item => item.invoiceId === invoiceId);
+    setInvoiceToEdit({ ...invoice, items: invoiceItems });
+    setView('generator');
   };
 
   const handleDeleteInvoice = (invoiceId) => {
@@ -408,6 +441,8 @@ export default function App() {
               products={dbProducts}
               topProducts={topProducts}
               customers={uniqueCustomers}
+              invoiceToEdit={invoiceToEdit}
+              onCancelEdit={() => { setInvoiceToEdit(null); setView('history'); }}
             />
           )}
 
@@ -417,6 +452,7 @@ export default function App() {
               onDelete={handleDeleteInvoice}
               onPrint={handlePrintInvoice}
               onTogglePrint={handleTogglePrintStatus}
+              onEdit={handleEditInvoice}
             />
           )}
 

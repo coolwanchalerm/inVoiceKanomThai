@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer, Edit } from 'lucide-react';
 
-export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint }) {
+export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint, onEdit }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
@@ -173,6 +173,23 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                       backgroundColor: '#ebf2ef'
                     }}>
                     <Printer size={18} />
+                  </button>
+                  <button 
+                    onClick={() => onEdit && onEdit(inv.id)}
+                    title="แก้ไขใบเสร็จ"
+                    style={{ 
+                      color: '#eab308', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: '0.4rem', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      backgroundColor: '#fefce8'
+                    }}>
+                    <Edit size={18} />
                   </button>
                   <button 
                     onClick={() => onDelete && onDelete(inv.id)}

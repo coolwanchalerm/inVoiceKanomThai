@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle, Package } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
 
-export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [], customers = [] }) {
+export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [], customers = [], invoiceToEdit = null, onCancelEdit }) {
   const [customerName, setCustomerName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   
@@ -27,6 +27,22 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerTaxId, setCustomerTaxId] = useState('');
   const [items, setItems] = useState([]);
+
+  React.useEffect(() => {
+    if (invoiceToEdit) {
+      setCustomerName(invoiceToEdit.customerName || '');
+      setDate(invoiceToEdit.date || getTodayThaiDate());
+      setCustomerAddress(invoiceToEdit.customerAddress || '');
+      setCustomerTaxId(invoiceToEdit.customerTaxId || '');
+      setItems(invoiceToEdit.items || []);
+    } else {
+      setCustomerName('');
+      setDate(getTodayThaiDate());
+      setCustomerAddress('');
+      setCustomerTaxId('');
+      setItems([]);
+    }
+  }, [invoiceToEdit]);
 
   const [newItem, setNewItem] = useState({ description: '', quantity: 1, unitPrice: 0 });
 
@@ -74,7 +90,47 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
     });
   };
 
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+  const computedDiscounts = React.useMemo(() => {
+    const discounts = [];
+    
+    // Group items by description
+    const itemGroups = {};
+    items.forEach(item => {
+      // Don't calculate discount for a discount line
+      if (item.description.startsWith('ส่วนลดโปรโมชั่น')) return;
+      
+      if (!itemGroups[item.description]) {
+        itemGroups[item.description] = { quantity: 0, product: products.find(p => p.name === item.description) };
+      }
+      itemGroups[item.description].quantity += Number(item.quantity);
+    });
+
+    // Calculate discount for each group
+    Object.keys(itemGroups).forEach(desc => {
+      const { quantity, product } = itemGroups[desc];
+      if (product && product.hasPromotion && product.promoQty > 0 && product.promoPrice >= 0) {
+        const sets = Math.floor(quantity / product.promoQty);
+        if (sets > 0) {
+          const normalPriceForSets = sets * product.promoQty * product.price;
+          const promoPriceForSets = sets * product.promoPrice;
+          const discountAmount = normalPriceForSets - promoPriceForSets;
+          
+          if (discountAmount > 0) {
+            discounts.push({
+              description: `ส่วนลดโปรโมชั่น ${desc} (${product.promoQty} ชิ้น ${product.promoPrice}฿)`,
+              amount: discountAmount
+            });
+          }
+        }
+      }
+    });
+    
+    return discounts;
+  }, [items, products]);
+
+  const subTotal = items.reduce((sum, item) => sum + item.amount, 0);
+  const totalDiscount = computedDiscounts.reduce((sum, d) => sum + d.amount, 0);
+  const totalAmount = Math.max(0, subTotal - totalDiscount);
 
   const handleSaveAndPrint = async (e) => {
     e.preventDefault();
@@ -89,9 +145,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       return;
     }
 
-    // Generate unique Invoice ID e.g. TK-YYYYMMDD-HHMM
-    const dateFormatted = date.replace(/-/g, '');
-    const uniqueId = `TK-${dateFormatted}-${Date.now().toString().slice(-4)}`;
+    const uniqueId = invoiceToEdit ? invoiceToEdit.id : `TK-${date.replace(/-/g, '')}-${Date.now().toString().slice(-4)}`;
 
     const invoiceData = {
       id: uniqueId,
@@ -100,10 +154,22 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       customerTaxId,
       date,
       totalAmount,
-      totalAmountText: getThaiBahtText(totalAmount)
+      totalAmountText: getThaiBahtText(totalAmount),
+      printedStatus: invoiceToEdit ? invoiceToEdit.printedStatus : false
     };
 
-    onSubmitInvoice(invoiceData, items);
+    const finalItems = [...items];
+    computedDiscounts.forEach((d, idx) => {
+      finalItems.push({
+        id: Date.now() + idx,
+        description: d.description,
+        quantity: 1,
+        unitPrice: -d.amount,
+        amount: -d.amount
+      });
+    });
+
+    onSubmitInvoice(invoiceData, finalItems);
   };
 
   return (
@@ -112,8 +178,13 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
         
         {/* Customer Details Card */}
         <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-          <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ClipboardCheck size={18} /> ข้อมูลลูกค้า
+          <div style={{ fontWeight: '600', color: 'var(--primary-color)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <ClipboardCheck size={18} /> ข้อมูลลูกค้า
+            </div>
+            {invoiceToEdit && (
+              <span style={{ fontSize: '0.8rem', backgroundColor: '#fefce8', color: '#ca8a04', padding: '0.2rem 0.6rem', borderRadius: '12px', border: '1px solid #fef08a' }}>กำลังแก้ไขใบเสร็จ: {invoiceToEdit.id}</span>
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div className="form-group" style={{ margin: 0 }}>
@@ -261,15 +332,41 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
           </div>
         </div>
 
+        {/* Discounts */}
+        {computedDiscounts.length > 0 && (
+          <div style={{ marginBottom: '1.5rem', backgroundColor: '#f0fdf4', padding: '1rem', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+            <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.5rem' }}>ส่วนลดจากโปรโมชั่น</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {computedDiscounts.map((discount, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#15803d' }}>
+                  <span>{discount.description}</span>
+                  <span style={{ fontWeight: '600' }}>-฿{discount.amount.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Total & Submit */}
         <div className="card" style={{ padding: '1.5rem', backgroundColor: 'var(--primary-color)', color: 'white', borderRadius: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div style={{ fontSize: '1.1rem', opacity: 0.9 }}>ยอดรวมทั้งสิ้น</div>
             <div style={{ fontSize: '1.8rem', fontWeight: '700' }}>฿{totalAmount.toLocaleString()}</div>
           </div>
-          <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <Printer size={20} /> ออกใบเสร็จ (Print PDF)
-          </button>
+          {invoiceToEdit ? (
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button type="button" onClick={onCancelEdit} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', transition: 'background 0.2s' }}>
+                ยกเลิกแก้ไข
+              </button>
+              <button type="submit" style={{ flex: 2, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                บันทึกการแก้ไข
+              </button>
+            </div>
+          ) : (
+            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              <Printer size={20} /> ออกใบเสร็จ (Print PDF)
+            </button>
+          )}
         </div>
 
       </form>

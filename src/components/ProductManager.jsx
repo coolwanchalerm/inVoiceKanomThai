@@ -5,8 +5,8 @@ export default function ProductManager({ products = [], onManageProduct }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
-  const [newItem, setNewItem] = useState({ name: '', price: '' });
-  const [editItem, setEditItem] = useState({ name: '', price: '' });
+  const [newItem, setNewItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
+  const [editItem, setEditItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -20,19 +20,38 @@ export default function ProductManager({ products = [], onManageProduct }) {
 
   const handleAdd = () => {
     if (!newItem.name || newItem.price === '') return;
-    onManageProduct('add', { name: newItem.name, price: Number(newItem.price) });
-    setNewItem({ name: '', price: '' });
+    onManageProduct('add', { 
+      name: newItem.name, 
+      price: Number(newItem.price),
+      hasPromotion: newItem.hasPromotion,
+      promoQty: Number(newItem.promoQty),
+      promoPrice: Number(newItem.promoPrice)
+    });
+    setNewItem({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
     setIsAdding(false);
   };
 
   const startEdit = (product) => {
     setEditingId(product.id);
-    setEditItem({ name: product.name, price: product.price });
+    setEditItem({ 
+      name: product.name, 
+      price: product.price,
+      hasPromotion: product.hasPromotion || false,
+      promoQty: product.promoQty || '',
+      promoPrice: product.promoPrice || ''
+    });
   };
 
   const saveEdit = () => {
     if (!editItem.name || editItem.price === '') return;
-    onManageProduct('edit', { id: editingId, name: editItem.name, price: Number(editItem.price) });
+    onManageProduct('edit', { 
+      id: editingId, 
+      name: editItem.name, 
+      price: Number(editItem.price),
+      hasPromotion: editItem.hasPromotion,
+      promoQty: Number(editItem.promoQty),
+      promoPrice: Number(editItem.promoPrice)
+    });
     setEditingId(null);
   };
 
@@ -88,6 +107,30 @@ export default function ProductManager({ products = [], onManageProduct }) {
                 />
               </div>
             </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input 
+                type="checkbox" 
+                id="newHasPromo"
+                checked={newItem.hasPromotion}
+                onChange={e => setNewItem({...newItem, hasPromotion: e.target.checked})}
+              />
+              <label htmlFor="newHasPromo" style={{ fontSize: '0.85rem', color: '#1e293b' }}>จัดโปรโมชั่นเซ็ต (เช่น ซื้อหลายชิ้นราคาพิเศษ)</label>
+            </div>
+            
+            {newItem.hasPromotion && (
+              <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวนชิ้น/เซ็ต</div>
+                  <input type="number" min="2" placeholder="เช่น 3" value={newItem.promoQty} onChange={e => setNewItem({...newItem, promoQty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคาโปรโมชั่น (บาท)</div>
+                  <input type="number" min="0" placeholder="เช่น 100" value={newItem.promoPrice} onChange={e => setNewItem({...newItem, promoPrice: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setIsAdding(false)}
@@ -144,6 +187,30 @@ export default function ProductManager({ products = [], onManageProduct }) {
                       />
                     </div>
                   </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input 
+                      type="checkbox" 
+                      id={`editHasPromo-${product.id}`}
+                      checked={editItem.hasPromotion}
+                      onChange={e => setEditItem({...editItem, hasPromotion: e.target.checked})}
+                    />
+                    <label htmlFor={`editHasPromo-${product.id}`} style={{ fontSize: '0.85rem', color: '#1e293b' }}>จัดโปรโมชั่นเซ็ต</label>
+                  </div>
+
+                  {editItem.hasPromotion && (
+                    <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวนชิ้น/เซ็ต</div>
+                        <input type="number" min="2" placeholder="เช่น 3" value={editItem.promoQty} onChange={e => setEditItem({...editItem, promoQty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคาโปรโมชั่น (บาท)</div>
+                        <input type="number" min="0" placeholder="เช่น 100" value={editItem.promoPrice} onChange={e => setEditItem({...editItem, promoPrice: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                     <button 
                       onClick={cancelEdit}
@@ -165,7 +232,14 @@ export default function ProductManager({ products = [], onManageProduct }) {
                     </div>
                     <div>
                       <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>{product.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: '600' }}>฿{product.price}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: '600' }}>
+                        ฿{product.price}
+                        {product.hasPromotion && (
+                          <span style={{ marginLeft: '8px', fontSize: '0.75rem', backgroundColor: '#fefce8', color: '#ca8a04', padding: '0.1rem 0.4rem', borderRadius: '12px', border: '1px solid #fef08a' }}>
+                            โปรฯ {product.promoQty} กล่อง {product.promoPrice}฿
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
