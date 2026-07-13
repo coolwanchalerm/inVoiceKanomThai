@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home, BarChart2 } from 'lucide-react';
+import liff from '@line/liff';
 import { supabase } from './supabaseClient';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
@@ -61,6 +62,7 @@ export default function App() {
         customerTaxId: inv.customer_tax_id,
         totalAmount: inv.total_amount,
         printedStatus: inv.printed_status,
+        status: inv.status || 'pending',
         createdAt: inv.created_at
       }));
 
@@ -97,6 +99,20 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+
+    // Initialize LIFF
+    const liffId = import.meta.env.VITE_LIFF_ID;
+    if (liffId) {
+      liff.init({ liffId })
+        .then(() => {
+          console.log('LIFF initialized');
+        })
+        .catch((err) => {
+          console.error('LIFF initialization failed', err);
+        });
+    } else {
+      console.warn('VITE_LIFF_ID is not defined in .env');
+    }
   }, []);
 
   const invoices = dbInvoices;
@@ -175,7 +191,8 @@ export default function App() {
         customer_address: invoice.customerAddress || "",
         customer_tax_id: invoice.customerTaxId || "",
         total_amount: invoice.totalAmount,
-        printed_status: invoice.printedStatus || false
+        printed_status: invoice.printedStatus || false,
+        status: invoice.status || 'pending'
       }]);
       if (invError) throw invError;
 
@@ -285,6 +302,28 @@ export default function App() {
         inv.id === invoiceId ? { ...inv, printedStatus: currentStatus } : inv
       ));
       console.error('Error toggling print status:', err);
+    }
+  };
+
+  const handleUpdateInvoiceStatus = async (invoiceId, newStatus) => {
+    // Optimistic UI update
+    const previousInvoices = [...dbInvoices];
+    setDbInvoices(prev => prev.map(inv => 
+      inv.id === invoiceId ? { ...inv, status: newStatus } : inv
+    ));
+
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .update({ status: newStatus })
+        .eq('id', invoiceId);
+        
+      if (error) throw error;
+    } catch (err) {
+      // Revert on error
+      setDbInvoices(previousInvoices);
+      console.error('Error updating status:', err);
+      showModal('เกิดข้อผิดพลาด', 'อัปเดตสถานะไม่สำเร็จ: ' + err.message, 'error');
     }
   };
 
@@ -449,10 +488,12 @@ export default function App() {
           {view === 'history' && (
             <InvoiceHistory 
               invoices={invoices} 
+              items={items}
               onDelete={handleDeleteInvoice}
               onPrint={handlePrintInvoice}
               onTogglePrint={handleTogglePrintStatus}
               onEdit={handleEditInvoice}
+              onUpdateStatus={handleUpdateInvoiceStatus}
             />
           )}
 

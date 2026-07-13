@@ -14,6 +14,8 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [quickDateFilter, setQuickDateFilter] = useState('all'); // 'all', 'today', 'tomorrow'
+  
   
   const [dbSize, setDbSize] = useState(null);
 
@@ -63,7 +65,18 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       const yearMatch = selectedYear === 'all' || invoiceYear.toString() === selectedYear;
       const monthMatch = selectedMonth === 'all' || invoiceMonth.toString() === selectedMonth;
 
-      return yearMatch && monthMatch;
+      let quickMatch = true;
+      if (quickDateFilter === 'today') {
+        const today = new Date();
+        today.setUTCHours(today.getUTCHours() + 7); // Thai time
+        quickMatch = invoiceYear === today.getUTCFullYear() && invoiceMonth === today.getUTCMonth() && dateObj.getDate() === today.getUTCDate();
+      } else if (quickDateFilter === 'tomorrow') {
+        const tomorrow = new Date();
+        tomorrow.setUTCHours(tomorrow.getUTCHours() + 7 + 24); // Thai time tomorrow
+        quickMatch = invoiceYear === tomorrow.getUTCFullYear() && invoiceMonth === tomorrow.getUTCMonth() && dateObj.getDate() === tomorrow.getUTCDate();
+      }
+
+      return yearMatch && monthMatch && quickMatch;
     });
 
     const filteredInvoiceIds = new Set(filteredInvoices.map(inv => inv.id));
@@ -73,7 +86,7 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       invoices: filteredInvoices,
       items: filteredItems
     };
-  }, [invoices, items, selectedYear, selectedMonth]);
+  }, [invoices, items, selectedYear, selectedMonth, quickDateFilter]);
 
   // Calculate statistics based on filtered data
   const stats = useMemo(() => {
@@ -81,9 +94,10 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
     const totalInvoices = filteredData.invoices.length;
     const totalItems = filteredData.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
     
-    // Find top selling item
     const itemMap = {};
     filteredData.items.forEach(item => {
+      // Skip discount lines
+      if (item.description.startsWith('ส่วนลดโปรโมชั่น')) return;
       itemMap[item.description] = (itemMap[item.description] || 0) + item.quantity;
     });
     
@@ -96,7 +110,9 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       }
     });
 
-    return { totalSales, totalInvoices, totalItems, topItem };
+    const todoList = Object.entries(itemMap).map(([name, qty]) => ({ name, qty })).sort((a, b) => b.qty - a.qty);
+
+    return { totalSales, totalInvoices, totalItems, topItem, todoList };
   }, [filteredData]);
 
   // Aggregate sales by date for bar chart
@@ -159,7 +175,30 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
   return (
     <div>
       {/* Filters Section */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        
+        {/* Quick Date Filters */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            onClick={() => { setQuickDateFilter('today'); setSelectedYear('all'); setSelectedMonth('all'); }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: quickDateFilter === 'today' ? 'none' : '1px solid #e2e8f0', backgroundColor: quickDateFilter === 'today' ? 'var(--primary-color)' : '#fff', color: quickDateFilter === 'today' ? '#fff' : '#64748b', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            ออเดอร์วันนี้
+          </button>
+          <button 
+            onClick={() => { setQuickDateFilter('tomorrow'); setSelectedYear('all'); setSelectedMonth('all'); }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: quickDateFilter === 'tomorrow' ? 'none' : '1px solid #e2e8f0', backgroundColor: quickDateFilter === 'tomorrow' ? 'var(--primary-color)' : '#fff', color: quickDateFilter === 'tomorrow' ? '#fff' : '#64748b', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            พรุ่งนี้
+          </button>
+          <button 
+            onClick={() => setQuickDateFilter('all')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: quickDateFilter === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: quickDateFilter === 'all' ? 'var(--primary-color)' : '#fff', color: quickDateFilter === 'all' ? '#fff' : '#64748b', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            ทั้งหมด
+          </button>
+        </div>
+
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <select
             value={selectedMonth}
@@ -240,6 +279,25 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
           <div className="stat-icon-wrapper">
             <TrendingUp size={24} />
           </div>
+        </div>
+      </div>
+
+      {/* To-Do List Section */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', backgroundColor: '#fff8f1', border: '1px solid #fed7aa' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#c2410c', fontWeight: '700', fontSize: '1.2rem' }}>
+          <ShoppingBag size={22} /> สิ่งที่ต้องทำ (To-Do List)
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
+          {stats.todoList.length === 0 ? (
+            <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>ไม่มีรายการขนมที่ต้องทำในรอบบิลนี้</div>
+          ) : (
+            stats.todoList.map((item, idx) => (
+              <div key={idx} style={{ backgroundColor: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #fed7aa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#ea580c' }}>{item.qty}</span>
+                <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'center', marginTop: '0.25rem', fontWeight: '600' }}>{item.name}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

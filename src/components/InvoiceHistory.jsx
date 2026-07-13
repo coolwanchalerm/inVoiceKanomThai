@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer, Edit } from 'lucide-react';
+import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer, Edit, Copy, CheckCircle, Clock, Package } from 'lucide-react';
 
-export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint, onEdit }) {
+export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint, onEdit, onUpdateStatus, items = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
@@ -43,8 +43,10 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
       }
       
       let statusMatch = true;
-      if (filterStatus === 'printed' && !inv.printedStatus) statusMatch = false;
-      if (filterStatus === 'unprinted' && inv.printedStatus) statusMatch = false;
+      if (filterStatus !== 'all') {
+        const invStatus = inv.status || 'pending';
+        if (invStatus !== filterStatus) statusMatch = false;
+      }
       
       return (name.includes(q) || id.includes(q)) && dateMatch && statusMatch;
     });
@@ -61,7 +63,6 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   
-  // Reset to page 1 when searching or filtering
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterYear, filterMonth, filterStatus]);
@@ -73,29 +74,21 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
   return (
     <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
-      {/* Header and Filter row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         
-        {/* Segmented Control */}
         <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
           <button 
             onClick={() => setFilterStatus('all')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'all' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'all' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
-          >
-            ทั้งหมด
-          </button>
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'all' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >ทั้งหมด</button>
           <button 
-            onClick={() => setFilterStatus('printed')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'printed' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'printed' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
-          >
-            พิมพ์แล้ว
-          </button>
+            onClick={() => setFilterStatus('pending')}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'pending' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'pending' ? '#eab308' : '#fff', color: filterStatus === 'pending' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >รอโอน</button>
           <button 
-            onClick={() => setFilterStatus('unprinted')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: filterStatus === 'unprinted' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'unprinted' ? '#fff' : '#64748b', whiteSpace: 'nowrap', fontWeight: '500', fontSize: '0.9rem', transition: 'all 0.2s', cursor: 'pointer' }}
-          >
-            ยังไม่พิมพ์
-          </button>
+            onClick={() => setFilterStatus('shipped')}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'shipped' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'shipped' ? '#3b82f6' : '#fff', color: filterStatus === 'shipped' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >ส่งแล้ว</button>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -118,7 +111,6 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
         </div>
       </div>
 
-      {/* Search Box */}
       <div style={{ position: 'relative', width: '100%', marginBottom: '1.5rem' }}>
         <input
           type="text"
@@ -130,7 +122,6 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
         <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
       </div>
 
-      {/* Invoice List (Cards) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
         {filteredInvoices.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#94a3b8', padding: '3rem 0' }}>
@@ -138,7 +129,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           </div>
         ) : (
           paginatedInvoices.map(inv => (
-            <div key={inv.id} style={{ 
+            <div key={inv.id} id={`receipt-card-${inv.id}`} style={{ 
               backgroundColor: '#fff', 
               padding: '1.25rem 0',
               borderBottom: '1px solid #f1f5f9',
@@ -160,18 +151,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                   <button 
                     onClick={() => onPrint && onPrint(inv.id)}
                     title="พิมพ์ใบเสร็จ"
-                    style={{ 
-                      color: 'var(--primary-color)', 
-                      background: 'none', 
-                      border: 'none', 
-                      cursor: 'pointer', 
-                      padding: '0.4rem', 
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '8px',
-                      backgroundColor: '#ebf2ef'
-                    }}>
+                    style={{ color: 'var(--primary-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', backgroundColor: '#ebf2ef' }}>
                     <Printer size={18} />
                   </button>
                   <button 
@@ -208,6 +188,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                     }}>
                     <Trash2 size={18} />
                   </button>
+
                 </div>
               </div>
 
@@ -219,23 +200,28 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginLeft: '56px' }}>
                 <div>
-                  <button 
-                    onClick={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                  <select 
+                    value={inv.status || 'pending'}
+                    onChange={(e) => onUpdateStatus && onUpdateStatus(inv.id, e.target.value)}
                     style={{ 
-                      padding: '0.25rem 0.75rem', 
+                      padding: '0.25rem 1.5rem 0.25rem 0.75rem', 
                       borderRadius: '4px', 
-                      border: 'none',
-                      backgroundColor: inv.printedStatus ? '#dcfce7' : '#f1f5f9', 
-                      color: inv.printedStatus ? '#16a34a' : '#64748b', 
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: inv.status === 'shipped' ? '#dbeafe' : '#fefce8', 
+                      color: inv.status === 'shipped' ? '#1e40af' : '#854d0e', 
                       fontSize: '0.8rem', 
-                      fontWeight: '600',
+                      fontWeight: '700',
                       cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      outline: 'none',
+                      appearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundSize: '12px'
                     }}>
-                    {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
-                  </button>
+                    <option value="pending">🟡 รอโอน</option>
+                    <option value="shipped">📦 ส่งแล้ว</option>
+                  </select>
                 </div>
                 
                 <div style={{ textAlign: 'right' }}>

@@ -203,6 +203,147 @@ serve(async (req) => {
             continue;
           }
 
+          if (userText === 'ออเดอร์วันนี้' || userText === 'ออเดอร์พรุ่งนี้') {
+            const now = new Date();
+            now.setUTCHours(now.getUTCHours() + 7);
+            if (userText === 'ออเดอร์พรุ่งนี้') {
+              now.setDate(now.getDate() + 1);
+            }
+            const targetDateStr = now.toISOString().split('T')[0];
+
+            const { data: orders, error } = await supabase
+              .from('invoices')
+              .select('*, invoice_items(*)')
+              .eq('date', targetDateStr);
+            
+            if (error) throw error;
+
+            if (!orders || orders.length === 0) {
+              await replyLineMessage(replyToken, `ไม่มีออเดอร์สำหรับ${userText.replace('ออเดอร์', '')}ครับ`);
+              continue;
+            }
+
+            const bubbles = orders.slice(0, 12).map((order: any) => {
+              const items = (order.invoice_items || []).map((it: any) => ({
+                type: "box", layout: "horizontal", contents: [
+                  { type: "text", text: `${it.description} x${it.quantity}`, size: "sm", color: "#555555", flex: 1, wrap: true },
+                  { type: "text", text: `฿${it.amount}`, size: "sm", color: "#111111", align: "end", flex: 0 }
+                ]
+              }));
+              const statusColor = order.status === 'paid' ? '#1DB446' : order.status === 'shipped' ? '#3b82f6' : '#eab308';
+              const statusText = order.status === 'paid' ? '🟢 จ่ายแล้ว' : order.status === 'shipped' ? '📦 ส่งแล้ว' : '🟡 รอโอน';
+              
+              return {
+                type: "bubble",
+                size: "micro",
+                header: {
+                  type: "box", layout: "vertical", backgroundColor: statusColor, paddingAll: "8px",
+                  contents: [
+                    { type: "text", text: statusText, color: "#ffffff", size: "xs", weight: "bold", align: "center" }
+                  ]
+                },
+                body: {
+                  type: "box", layout: "vertical", spacing: "sm", paddingAll: "12px",
+                  contents: [
+                    { type: "text", text: order.customer_name || 'ลูกค้าทั่วไป', weight: "bold", size: "sm", wrap: true },
+                    { type: "text", text: `บิล: ${order.id}`, size: "xxs", color: "#aaaaaa" },
+                    { type: "separator", margin: "md" },
+                    ...items,
+                    { type: "separator", margin: "md" },
+                    { type: "box", layout: "horizontal", contents: [
+                      { type: "text", text: "รวม", size: "sm", color: "#555555" },
+                      { type: "text", text: `฿${order.total_amount}`, size: "sm", weight: "bold", align: "end" }
+                    ]}
+                  ]
+                }
+              };
+            });
+
+            await replyLineFlex(replyToken, userText, {
+              type: "carousel",
+              contents: bubbles
+            });
+            continue;
+          }
+
+          if (userText === 'สรุปยอด') {
+            const now = new Date();
+            now.setUTCHours(now.getUTCHours() + 7);
+            const yearMonth = now.toISOString().substring(0, 7);
+            const monthNames = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+            const monthName = monthNames[now.getMonth()];
+
+            const { data: monthOrders, error } = await supabase
+              .from('invoices')
+              .select('*')
+              .like('date', `${yearMonth}%`);
+            
+            if (error) throw error;
+
+            const orders = monthOrders || [];
+            const totalSales = orders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+            
+            const pendingCount = orders.filter((o: any) => o.status === 'pending').length;
+            const paidCount = orders.filter((o: any) => o.status === 'paid').length;
+            const shippedCount = orders.filter((o: any) => o.status === 'shipped').length;
+
+            const flex = {
+              type: "bubble",
+              size: "mega",
+              header: {
+                type: "box", layout: "vertical", backgroundColor: "#4f46e5", paddingAll: "16px",
+                contents: [
+                  { type: "text", text: `สรุปยอดเดือน ${monthName}`, color: "#ffffff", size: "lg", weight: "bold" },
+                  { type: "text", text: "รวมทุกสถานะ", color: "#e0e7ff", size: "sm" }
+                ]
+              },
+              body: {
+                type: "box", layout: "vertical", spacing: "md", paddingAll: "20px",
+                contents: [
+                  {
+                    type: "box", layout: "vertical", alignItems: "center", margin: "lg",
+                    contents: [
+                      { type: "text", text: "ยอดขายรวม", size: "sm", color: "#64748b" },
+                      { type: "text", text: `฿${totalSales.toLocaleString()}`, size: "3xl", weight: "bold", color: "#0f172a" }
+                    ]
+                  },
+                  { type: "separator", margin: "xl" },
+                  {
+                    type: "box", layout: "horizontal", margin: "lg",
+                    contents: [
+                      { type: "text", text: "จำนวนบิลทั้งหมด", size: "sm", color: "#475569" },
+                      { type: "text", text: `${orders.length} บิล`, size: "md", weight: "bold", color: "#0f172a", align: "end" }
+                    ]
+                  },
+                  {
+                    type: "box", layout: "horizontal", margin: "sm",
+                    contents: [
+                      { type: "text", text: "🟡 รอโอน", size: "xs", color: "#64748b" },
+                      { type: "text", text: `${pendingCount} บิล`, size: "xs", color: "#0f172a", align: "end" }
+                    ]
+                  },
+                  {
+                    type: "box", layout: "horizontal", margin: "sm",
+                    contents: [
+                      { type: "text", text: "🟢 จ่ายแล้ว", size: "xs", color: "#64748b" },
+                      { type: "text", text: `${paidCount} บิล`, size: "xs", color: "#0f172a", align: "end" }
+                    ]
+                  },
+                  {
+                    type: "box", layout: "horizontal", margin: "sm",
+                    contents: [
+                      { type: "text", text: "📦 ส่งแล้ว", size: "xs", color: "#64748b" },
+                      { type: "text", text: `${shippedCount} บิล`, size: "xs", color: "#0f172a", align: "end" }
+                    ]
+                  }
+                ]
+              }
+            };
+
+            await replyLineFlex(replyToken, "สรุปยอดรายเดือน", flex);
+            continue;
+          }
+
           // Fetch current state
           const { data: stateData } = await supabase
             .from('bot_states')
