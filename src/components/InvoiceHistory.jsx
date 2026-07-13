@@ -83,11 +83,11 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           >ทั้งหมด</button>
           <button 
             onClick={() => setFilterStatus('pending')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'pending' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'pending' ? '#eab308' : '#fff', color: filterStatus === 'pending' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'pending' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'pending' ? 'var(--accent-color)' : '#fff', color: filterStatus === 'pending' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >รอโอน</button>
           <button 
             onClick={() => setFilterStatus('shipped')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'shipped' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'shipped' ? '#3b82f6' : '#fff', color: filterStatus === 'shipped' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'shipped' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'shipped' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'shipped' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >ส่งแล้ว</button>
         </div>
 
@@ -151,8 +151,21 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                   <button 
                     onClick={() => onPrint && onPrint(inv.id)}
                     title="พิมพ์ใบเสร็จ"
-                    style={{ color: 'var(--primary-color)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', backgroundColor: '#ebf2ef' }}>
-                    <Printer size={18} />
+                    style={{ 
+                      color: 'var(--primary-color)', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: '0.4rem 0.75rem', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '8px', 
+                      backgroundColor: '#ebf2ef',
+                      fontWeight: '600',
+                      fontSize: '0.85rem'
+                    }}>
+                    <Printer size={16} /> พิมพ์
                   </button>
                   <button 
                     onClick={() => onEdit && onEdit(inv.id)}
@@ -199,16 +212,16 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginLeft: '56px' }}>
-                <div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <select 
                     value={inv.status || 'pending'}
                     onChange={(e) => onUpdateStatus && onUpdateStatus(inv.id, e.target.value)}
                     style={{ 
                       padding: '0.25rem 1.5rem 0.25rem 0.75rem', 
-                      borderRadius: '4px', 
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: inv.status === 'shipped' ? '#dbeafe' : '#fefce8', 
-                      color: inv.status === 'shipped' ? '#1e40af' : '#854d0e', 
+                      borderRadius: '8px', 
+                      border: '1px solid ' + (inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)'),
+                      backgroundColor: inv.status === 'shipped' ? '#ebf2ef' : '#fcf9f2', 
+                      color: inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)', 
                       fontSize: '0.8rem', 
                       fontWeight: '700',
                       cursor: 'pointer',
@@ -219,9 +232,30 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                       backgroundPosition: 'right 0.5rem center',
                       backgroundSize: '12px'
                     }}>
-                    <option value="pending">🟡 รอโอน</option>
-                    <option value="shipped">📦 ส่งแล้ว</option>
+                    <option value="pending">รอโอน</option>
+                    <option value="shipped">ส่งแล้ว</option>
                   </select>
+
+                  <button
+                    onClick={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                    style={{
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid ' + (inv.printedStatus ? 'var(--primary-color)' : '#cbd5e1'),
+                      backgroundColor: inv.printedStatus ? '#ebf2ef' : '#f8fafc',
+                      color: inv.printedStatus ? 'var(--primary-color)' : '#64748b',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    {inv.printedStatus ? <CheckCircle size={14} /> : <Printer size={14} />}
+                    {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
+                  </button>
                 </div>
                 
                 <div style={{ textAlign: 'right' }}>

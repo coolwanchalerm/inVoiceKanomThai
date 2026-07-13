@@ -282,24 +282,7 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
         </div>
       </div>
 
-      {/* To-Do List Section */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', backgroundColor: '#fff8f1', border: '1px solid #fed7aa' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#c2410c', fontWeight: '700', fontSize: '1.2rem' }}>
-          <ShoppingBag size={22} /> สิ่งที่ต้องทำ (To-Do List)
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem' }}>
-          {stats.todoList.length === 0 ? (
-            <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>ไม่มีรายการขนมที่ต้องทำในรอบบิลนี้</div>
-          ) : (
-            stats.todoList.map((item, idx) => (
-              <div key={idx} style={{ backgroundColor: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #fed7aa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#ea580c' }}>{item.qty}</span>
-                <span style={{ fontSize: '0.9rem', color: '#475569', textAlign: 'center', marginTop: '0.25rem', fontWeight: '600' }}>{item.name}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+
 
       {/* Charts Grid */}
       <div className="charts-grid">
