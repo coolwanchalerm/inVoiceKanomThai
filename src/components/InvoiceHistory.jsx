@@ -213,48 +213,42 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginLeft: '56px' }}>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <select 
-                    value={inv.status || 'pending'}
-                    onChange={(e) => onUpdateStatus && onUpdateStatus(inv.id, e.target.value)}
-                    style={{ 
-                      padding: '0.25rem 1.5rem 0.25rem 0.75rem', 
-                      borderRadius: '8px', 
-                      border: '1px solid ' + (inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)'),
-                      backgroundColor: inv.status === 'shipped' ? '#ebf2ef' : '#fcf9f2', 
-                      color: inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)', 
-                      fontSize: '0.8rem', 
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      appearance: 'none',
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 0.5rem center',
-                      backgroundSize: '12px'
-                    }}>
-                    <option value="pending">รอโอน</option>
-                    <option value="shipped">ส่งแล้ว</option>
-                  </select>
-
                   <button
-                    onClick={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                    onClick={() => onUpdateStatus && onUpdateStatus(inv.id, inv.status === 'shipped' ? 'pending' : 'shipped')}
+                    title={inv.status === 'shipped' ? "ส่งแล้ว" : "รอโอน"}
                     style={{
-                      padding: '0.25rem 0.75rem',
+                      padding: '0.35rem',
                       borderRadius: '8px',
-                      border: '1px solid ' + (inv.printedStatus ? 'var(--primary-color)' : '#cbd5e1'),
-                      backgroundColor: inv.printedStatus ? '#ebf2ef' : '#f8fafc',
-                      color: inv.printedStatus ? 'var(--primary-color)' : '#64748b',
-                      fontSize: '0.8rem',
-                      fontWeight: '700',
+                      border: '1px solid ' + (inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)'),
+                      backgroundColor: inv.status === 'shipped' ? '#ebf2ef' : '#fcf9f2',
+                      color: inv.status === 'shipped' ? 'var(--primary-color)' : 'var(--accent-color)',
                       cursor: 'pointer',
                       outline: 'none',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem'
+                      justifyContent: 'center',
                     }}
                   >
-                    {inv.printedStatus ? <CheckCircle size={14} /> : <Printer size={14} />}
-                    {inv.printedStatus ? 'พิมพ์แล้ว' : 'ยังไม่พิมพ์'}
+                    {inv.status === 'shipped' ? <Package size={16} /> : <Clock size={16} />}
+                  </button>
+
+                  <button
+                    onClick={() => onTogglePrint && onTogglePrint(inv.id, inv.printedStatus)}
+                    title={inv.printedStatus ? "พิมพ์แล้ว" : "ยังไม่พิมพ์"}
+                    style={{
+                      padding: '0.35rem',
+                      borderRadius: '8px',
+                      border: '1px solid ' + (inv.printedStatus ? 'var(--primary-color)' : '#cbd5e1'),
+                      backgroundColor: inv.printedStatus ? '#ebf2ef' : '#f8fafc',
+                      color: inv.printedStatus ? 'var(--primary-color)' : '#64748b',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {inv.printedStatus ? <CheckCircle size={16} /> : <Printer size={16} />}
                   </button>
                 </div>
                 
