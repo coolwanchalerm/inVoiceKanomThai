@@ -1,22 +1,56 @@
-import React, { useState, useMemo } from 'react';
-import { Package, Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Package, Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight, Box, Layers, Search, Upload, Image as ImageIcon } from 'lucide-react';
+import BoxManager from './BoxManager';
+import SetManager from './SetManager';
+import { supabase } from '../supabaseClient';
+import { optimizeImage } from '../utils/imageOptimizer';
 
 export default function ProductManager({ products = [], onManageProduct }) {
+  const [activeTab, setActiveTab] = useState('products');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
-  const [newItem, setNewItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
-  const [editItem, setEditItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
+  const [newItem, setNewItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '', category: 'dessert', image_url: '' });
+  const [editItem, setEditItem] = useState({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '', category: 'dessert', image_url: '' });
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const newImageRef = useRef(null);
+  const editImageRef = useRef(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    const q = searchQuery.trim().toLowerCase();
+    return products.filter(p => p.name.toLowerCase().includes(q));
+  }, [products, searchQuery]);
   
-  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return products.slice(startIndex, startIndex + itemsPerPage);
-  }, [products, currentPage]);
+    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredProducts, currentPage]);
+
+  const uploadImage = async (file) => {
+    setUploading(true);
+    try {
+      const optimized = await optimizeImage(file, 400, 400, 0.8);
+      const fileName = `products/${Date.now()}_${optimized.name}`;
+      const { data, error } = await supabase.storage.from('images').upload(fileName, optimized);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from('images').getPublicUrl(fileName);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('อัปโหลดรูปไม่สำเร็จ: ' + err.message);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleAdd = () => {
     if (!newItem.name || newItem.price === '') return;
@@ -25,9 +59,11 @@ export default function ProductManager({ products = [], onManageProduct }) {
       price: Number(newItem.price),
       hasPromotion: newItem.hasPromotion,
       promoQty: Number(newItem.promoQty),
-      promoPrice: Number(newItem.promoPrice)
+      promoPrice: Number(newItem.promoPrice),
+      category: newItem.category,
+      image_url: newItem.image_url || null
     });
-    setNewItem({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '' });
+    setNewItem({ name: '', price: '', hasPromotion: false, promoQty: '', promoPrice: '', category: 'dessert', image_url: '' });
     setIsAdding(false);
   };
 
@@ -38,7 +74,9 @@ export default function ProductManager({ products = [], onManageProduct }) {
       price: product.price,
       hasPromotion: product.hasPromotion || false,
       promoQty: product.promoQty || '',
-      promoPrice: product.promoPrice || ''
+      promoPrice: product.promoPrice || '',
+      category: product.category || 'dessert',
+      image_url: product.image_url || ''
     });
   };
 
@@ -50,7 +88,9 @@ export default function ProductManager({ products = [], onManageProduct }) {
       price: Number(editItem.price),
       hasPromotion: editItem.hasPromotion,
       promoQty: Number(editItem.promoQty),
-      promoPrice: Number(editItem.promoPrice)
+      promoPrice: Number(editItem.promoPrice),
+      category: editItem.category,
+      image_url: editItem.image_url || null
     });
     setEditingId(null);
   };
@@ -64,14 +104,54 @@ export default function ProductManager({ products = [], onManageProduct }) {
   };
 
   return (
-    <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-        {!isAdding && (
-          <button className="btn btn-primary" onClick={() => setIsAdding(true)}>
-            <Plus size={18} /> เพิ่มสินค้าใหม่
-          </button>
-        )}
+    <div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem', whiteSpace: 'nowrap' }}>
+        <button 
+          onClick={() => setActiveTab('products')}
+          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'products' ? '#1e3a2b' : '#fff', color: activeTab === 'products' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'products' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
+        >
+          <Package size={18} /> รายการขนม
+        </button>
+        <button 
+          onClick={() => setActiveTab('boxes')}
+          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'boxes' ? '#1e3a2b' : '#fff', color: activeTab === 'boxes' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'boxes' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
+        >
+          <Box size={18} /> รูปแบบกล่อง
+        </button>
+        <button 
+          onClick={() => setActiveTab('sets')}
+          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'sets' ? '#1e3a2b' : '#fff', color: activeTab === 'sets' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'sets' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
+        >
+          <Layers size={18} /> จัดการเซ็ตราคา
+        </button>
       </div>
+
+      {activeTab === 'products' && (
+        <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
+          {/* Search & Add */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <input 
+                type="text" 
+                placeholder="ค้นหาชื่อขนม..." 
+                value={searchQuery} 
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2.25rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.9rem' }}
+              />
+            </div>
+            {!isAdding && (
+              <button className="btn btn-primary" onClick={() => setIsAdding(true)} style={{ whiteSpace: 'nowrap' }}>
+                <Plus size={18} /> เพิ่มสินค้าใหม่
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
+              พบ {filteredProducts.length} รายการ จากทั้งหมด {products.length} รายการ
+            </div>
+          )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {isAdding && (
@@ -84,8 +164,8 @@ export default function ProductManager({ products = [], onManageProduct }) {
             flexDirection: 'column',
             gap: '1rem'
           }}>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ flex: 2 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
+              <div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ชื่อสินค้า</div>
                 <input 
                   type="text" 
@@ -96,7 +176,7 @@ export default function ProductManager({ products = [], onManageProduct }) {
                   autoFocus
                 />
               </div>
-              <div style={{ flex: 1 }}>
+              <div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
                 <input 
                   type="number" 
@@ -106,6 +186,51 @@ export default function ProductManager({ products = [], onManageProduct }) {
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
                 />
               </div>
+              <div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ประเภท</div>
+                <select 
+                  value={newItem.category} 
+                  onChange={e => setNewItem({...newItem, category: e.target.value})}
+                  style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                >
+                  <option value="dessert">ขนม</option>
+                  <option value="drink">เครื่องดื่ม</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Image Input */}
+            <div>
+              <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>รูปสินค้า (วาง URL หรืออัปโหลด)</div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  value={newItem.image_url} 
+                  onChange={e => setNewItem({...newItem, image_url: e.target.value})}
+                  placeholder="https://... หรือกดอัปโหลด →"
+                  style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
+                />
+                <input type="file" accept="image/*" ref={newImageRef} style={{ display: 'none' }} onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  const url = await uploadImage(file);
+                  if (url) setNewItem(prev => ({ ...prev, image_url: url }));
+                  e.target.value = '';
+                }} />
+                <button 
+                  onClick={() => newImageRef.current?.click()} 
+                  disabled={uploading}
+                  style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}
+                >
+                  <Upload size={14} /> {uploading ? 'กำลัง...' : 'อัปโหลด'}
+                </button>
+              </div>
+              {newItem.image_url && (
+                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <img src={newItem.image_url} alt="preview" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0' }} />
+                  <button onClick={() => setNewItem({...newItem, image_url: ''})} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem' }}>ลบรูป</button>
+                </div>
+              )}
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -166,8 +291,8 @@ export default function ProductManager({ products = [], onManageProduct }) {
             }}>
               {editingId === product.id ? (
                 <>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 2 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
+                    <div>
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ชื่อสินค้า</div>
                       <input 
                         type="text" 
@@ -177,7 +302,7 @@ export default function ProductManager({ products = [], onManageProduct }) {
                         autoFocus
                       />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div>
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
                       <input 
                         type="number" 
@@ -185,6 +310,51 @@ export default function ProductManager({ products = [], onManageProduct }) {
                         onChange={e => setEditItem({...editItem, price: e.target.value})}
                         style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
                       />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ประเภท</div>
+                      <select 
+                        value={editItem.category} 
+                        onChange={e => setEditItem({...editItem, category: e.target.value})}
+                        style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                      >
+                        <option value="dessert">ขนม</option>
+                        <option value="drink">เครื่องดื่ม</option>
+                      </select>
+                    </div>
+
+                    {/* Image Input for Edit */}
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>รูปสินค้า</div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <input 
+                          type="text" 
+                          value={editItem.image_url} 
+                          onChange={e => setEditItem({...editItem, image_url: e.target.value})}
+                          placeholder="https://... หรือกดอัปโหลด →"
+                          style={{ flex: 1, padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
+                        />
+                        <input type="file" accept="image/*" ref={editImageRef} style={{ display: 'none' }} onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const url = await uploadImage(file);
+                          if (url) setEditItem(prev => ({ ...prev, image_url: url }));
+                          e.target.value = '';
+                        }} />
+                        <button 
+                          onClick={() => editImageRef.current?.click()} 
+                          disabled={uploading}
+                          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#475569', whiteSpace: 'nowrap' }}
+                        >
+                          <Upload size={14} /> {uploading ? 'กำลัง...' : 'อัปโหลด'}
+                        </button>
+                      </div>
+                      {editItem.image_url && (
+                        <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <img src={editItem.image_url} alt="preview" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0' }} />
+                          <button onClick={() => setEditItem({...editItem, image_url: ''})} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem' }}>ลบรูป</button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -226,12 +396,21 @@ export default function ProductManager({ products = [], onManageProduct }) {
                 </>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ebf2ef', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-color)', flexShrink: 0 }}>
-                      <Package size={20} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: '#f1f5f9', display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Package size={20} style={{ color: 'var(--primary-color)' }} />
+                      )}
                     </div>
                     <div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>{product.name}</div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>
+                        {product.name}
+                        <span style={{ marginLeft: '8px', fontSize: '0.75rem', backgroundColor: product.category === 'drink' ? '#e0f2fe' : '#f0fdf4', color: product.category === 'drink' ? '#0369a1' : '#15803d', padding: '0.1rem 0.4rem', borderRadius: '12px' }}>
+                          {product.category === 'drink' ? 'เครื่องดื่ม' : 'ขนม'}
+                        </span>
+                      </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--primary-color)', fontWeight: '600' }}>
                         ฿{product.price}
                         {product.hasPromotion && (
@@ -288,6 +467,11 @@ export default function ProductManager({ products = [], onManageProduct }) {
           </button>
         </div>
       )}
+        </div>
+      )}
+
+      {activeTab === 'boxes' && <BoxManager />}
+      {activeTab === 'sets' && <SetManager />}
     </div>
   );
 }

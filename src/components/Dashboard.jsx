@@ -59,21 +59,22 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       const dateObj = new Date(inv.date);
       if (isNaN(dateObj.getTime())) return false;
 
-      const invoiceYear = dateObj.getFullYear();
-      const invoiceMonth = dateObj.getMonth(); // 0-11
+      // ใช้ UTC เพื่อป้องกัน timezone shift (วันที่เก็บเป็น YYYY-MM-DD จะ parse เป็น UTC midnight)
+      const invoiceYear = dateObj.getUTCFullYear();
+      const invoiceMonth = dateObj.getUTCMonth(); // 0-11
 
       const yearMatch = selectedYear === 'all' || invoiceYear.toString() === selectedYear;
       const monthMatch = selectedMonth === 'all' || invoiceMonth.toString() === selectedMonth;
 
       let quickMatch = true;
       if (quickDateFilter === 'today') {
-        const today = new Date();
-        today.setUTCHours(today.getUTCHours() + 7); // Thai time
-        quickMatch = invoiceYear === today.getUTCFullYear() && invoiceMonth === today.getUTCMonth() && dateObj.getDate() === today.getUTCDate();
+        const todayUTC = new Date();
+        const thaiNow = new Date(todayUTC.getTime() + 7 * 60 * 60 * 1000);
+        quickMatch = invoiceYear === thaiNow.getUTCFullYear() && invoiceMonth === thaiNow.getUTCMonth() && dateObj.getUTCDate() === thaiNow.getUTCDate();
       } else if (quickDateFilter === 'tomorrow') {
-        const tomorrow = new Date();
-        tomorrow.setUTCHours(tomorrow.getUTCHours() + 7 + 24); // Thai time tomorrow
-        quickMatch = invoiceYear === tomorrow.getUTCFullYear() && invoiceMonth === tomorrow.getUTCMonth() && dateObj.getDate() === tomorrow.getUTCDate();
+        const tomorrowUTC = new Date();
+        const thaiTomorrow = new Date(tomorrowUTC.getTime() + (7 + 24) * 60 * 60 * 1000);
+        quickMatch = invoiceYear === thaiTomorrow.getUTCFullYear() && invoiceMonth === thaiTomorrow.getUTCMonth() && dateObj.getUTCDate() === thaiTomorrow.getUTCDate();
       }
 
       return yearMatch && monthMatch && quickMatch;
@@ -125,8 +126,13 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       if (inv.date) {
         const d = new Date(inv.date);
         if (!isNaN(d.getTime())) {
-          key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          dStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+          // ใช้ UTC เพื่อป้องกัน timezone shift
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(d.getUTCDate()).padStart(2, '0');
+          key = `${y}-${m}-${day}`;
+          // แสดงผลแบบไทย
+          dStr = `${parseInt(day)} ${THAI_MONTH_NAMES[d.getUTCMonth()].substring(0, 3)}`;
         }
       }
 
@@ -150,15 +156,17 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
       const dateObj = new Date(inv.date);
       if (isNaN(dateObj.getTime())) return;
       
-      const year = dateObj.getFullYear();
+      // ใช้ UTC เพื่อป้องกัน timezone shift
+      const year = dateObj.getUTCFullYear();
       if (selectedYear !== 'all' && year.toString() !== selectedYear) return;
       
-      const monthIdx = dateObj.getMonth();
+      const monthIdx = dateObj.getUTCMonth();
       const monthName = THAI_MONTH_NAMES[monthIdx];
       const shortYear = (year + 543).toString().slice(-2);
       const label = selectedYear === 'all' ? `${monthName.substring(0, 3)} ${shortYear}` : monthName;
       
-      const sortKey = `${year}-${String(monthIdx).padStart(2, '0')}`;
+      // pad monthIdx ให้ถูกต้องเพื่อให้ sort ได้ถูกลำดับ
+      const sortKey = `${year}-${String(monthIdx + 1).padStart(2, '0')}`;
       
       if (!monthMap[sortKey]) {
         monthMap[sortKey] = { label, amount: 0 };
