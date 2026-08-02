@@ -3,8 +3,11 @@ import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRi
 
 export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint, onEdit, onUpdateStatus, items = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterYear, setFilterYear] = useState('all');
-  const [filterMonth, setFilterMonth] = useState('all');
+
+  // ตั้งค่าเริ่มต้นเป็นปี/เดือนปัจจุบัน (เวลาไทย UTC+7)
+  const nowThai = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const [filterYear, setFilterYear] = useState(nowThai.getUTCFullYear().toString());
+  const [filterMonth, setFilterMonth] = useState(String(nowThai.getUTCMonth() + 1).padStart(2, '0'));
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'printed', 'unprinted'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
