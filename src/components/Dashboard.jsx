@@ -12,8 +12,11 @@ const THAI_MONTH_NAMES = [
 
 export default function Dashboard({ invoices = [], items = [], onNavigateToBackup }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [selectedMonth, setSelectedMonth] = useState('all');
+
+  // ตั้งค่าเริ่มต้นเป็นเดือน/ปีปัจจุบัน (เวลาไทย UTC+7)
+  const nowThai = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  const [selectedYear, setSelectedYear] = useState(nowThai.getUTCFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(nowThai.getUTCMonth().toString());
   const [quickDateFilter, setQuickDateFilter] = useState('all'); // 'all', 'today', 'tomorrow'
   
   
