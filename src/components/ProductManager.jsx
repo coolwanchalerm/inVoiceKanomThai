@@ -1,12 +1,9 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Package, Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight, Box, Layers, Search, Upload, Image as ImageIcon } from 'lucide-react';
-import BoxManager from './BoxManager';
-import SetManager from './SetManager';
+import { Package, Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight, Search, Upload, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { optimizeImage } from '../utils/imageOptimizer';
 
 export default function ProductManager({ products = [], onManageProduct }) {
-  const [activeTab, setActiveTab] = useState('products');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
@@ -105,30 +102,8 @@ export default function ProductManager({ products = [], onManageProduct }) {
 
   return (
     <div>
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.5rem', whiteSpace: 'nowrap' }}>
-        <button 
-          onClick={() => setActiveTab('products')}
-          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'products' ? '#1e3a2b' : '#fff', color: activeTab === 'products' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'products' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
-        >
-          <Package size={18} /> รายการขนม
-        </button>
-        <button 
-          onClick={() => setActiveTab('boxes')}
-          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'boxes' ? '#1e3a2b' : '#fff', color: activeTab === 'boxes' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'boxes' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
-        >
-          <Box size={18} /> รูปแบบกล่อง
-        </button>
-        <button 
-          onClick={() => setActiveTab('sets')}
-          style={{ padding: '0.75rem 1.5rem', borderRadius: '12px', border: 'none', background: activeTab === 'sets' ? '#1e3a2b' : '#fff', color: activeTab === 'sets' ? '#fff' : '#64748b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: activeTab === 'sets' ? '0 4px 12px rgba(30, 58, 43, 0.2)' : '0 2px 4px rgba(0,0,0,0.02)' }}
-        >
-          <Layers size={18} /> จัดการเซ็ตราคา
-        </button>
-      </div>
 
-      {activeTab === 'products' && (
-        <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
           {/* Search & Add */}
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
@@ -467,11 +442,7 @@ export default function ProductManager({ products = [], onManageProduct }) {
           </button>
         </div>
       )}
-        </div>
-      )}
-
-      {activeTab === 'boxes' && <BoxManager />}
-      {activeTab === 'sets' && <SetManager />}
+      </div>
     </div>
   );
 }
