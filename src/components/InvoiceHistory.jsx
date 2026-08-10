@@ -8,7 +8,8 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
   const nowThai = new Date(Date.now() + 7 * 60 * 60 * 1000);
   const [filterYear, setFilterYear] = useState(nowThai.getUTCFullYear().toString());
   const [filterMonth, setFilterMonth] = useState(String(nowThai.getUTCMonth() + 1).padStart(2, '0'));
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'printed', 'unprinted'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'shipped'
+  const [filterPrint, setFilterPrint] = useState('all'); // 'all', 'printed', 'unprinted'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -50,8 +51,12 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
         const invStatus = inv.status || 'pending';
         if (invStatus !== filterStatus) statusMatch = false;
       }
+
+      let printMatch = true;
+      if (filterPrint === 'printed') printMatch = inv.printedStatus === true;
+      if (filterPrint === 'unprinted') printMatch = !inv.printedStatus;
       
-      return (name.includes(q) || id.includes(q)) && dateMatch && statusMatch;
+      return (name.includes(q) || id.includes(q)) && dateMatch && statusMatch && printMatch;
     });
 
     return result.sort((a, b) => {
@@ -62,13 +67,13 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
       }
       return (b.id || '').localeCompare(a.id || '');
     });
-  }, [invoices, searchTerm, filterYear, filterMonth, filterStatus]);
+  }, [invoices, searchTerm, filterYear, filterMonth, filterStatus, filterPrint]);
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
   
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterYear, filterMonth, filterStatus]);
+  }, [searchTerm, filterYear, filterMonth, filterStatus, filterPrint]);
 
   const paginatedInvoices = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -79,7 +84,8 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
     <div className="card" style={{ padding: '1.5rem', marginBottom: '100px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', flexWrap: 'wrap' }}>
+          {/* Status filter */}
           <button 
             onClick={() => setFilterStatus('all')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'all' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -92,6 +98,23 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
             onClick={() => setFilterStatus('shipped')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'shipped' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'shipped' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'shipped' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >ส่งแล้ว</button>
+
+          {/* Divider */}
+          <span style={{ width: '1px', backgroundColor: '#e2e8f0', margin: '0 0.25rem', alignSelf: 'stretch' }} />
+
+          {/* Print status filter */}
+          <button 
+            onClick={() => setFilterPrint('all')}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'all' ? '#64748b' : '#fff', color: filterPrint === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >ทุกสถานะพิมพ์</button>
+          <button 
+            onClick={() => setFilterPrint('unprinted')}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'unprinted' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'unprinted' ? '#f59e0b' : '#fff', color: filterPrint === 'unprinted' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >🖨️ ยังไม่พิมพ์</button>
+          <button 
+            onClick={() => setFilterPrint('printed')}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'printed' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'printed' ? '#22c55e' : '#fff', color: filterPrint === 'printed' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >✅ พิมพ์แล้ว</button>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
