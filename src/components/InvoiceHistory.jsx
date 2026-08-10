@@ -105,16 +105,16 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           {/* Print status filter */}
           <button 
             onClick={() => setFilterPrint('all')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'all' ? '#64748b' : '#fff', color: filterPrint === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'all' ? 'var(--primary-color)' : '#fff', color: filterPrint === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >ทุกสถานะพิมพ์</button>
           <button 
             onClick={() => setFilterPrint('unprinted')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'unprinted' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'unprinted' ? '#f59e0b' : '#fff', color: filterPrint === 'unprinted' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >🖨️ ยังไม่พิมพ์</button>
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'unprinted' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'unprinted' ? 'var(--accent-color)' : '#fff', color: filterPrint === 'unprinted' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >ยังไม่พิมพ์</button>
           <button 
             onClick={() => setFilterPrint('printed')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'printed' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'printed' ? '#22c55e' : '#fff', color: filterPrint === 'printed' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >✅ พิมพ์แล้ว</button>
+            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'printed' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'printed' ? 'var(--primary-color)' : '#fff', color: filterPrint === 'printed' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >พิมพ์แล้ว</button>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem' }}>
