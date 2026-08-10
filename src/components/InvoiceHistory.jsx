@@ -104,15 +104,11 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
           {/* Print status filter */}
           <button 
-            onClick={() => setFilterPrint('all')}
-            style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'all' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'all' ? 'var(--primary-color)' : '#fff', color: filterPrint === 'all' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >ทุกสถานะพิมพ์</button>
-          <button 
-            onClick={() => setFilterPrint('unprinted')}
+            onClick={() => setFilterPrint(filterPrint === 'unprinted' ? 'all' : 'unprinted')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'unprinted' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'unprinted' ? 'var(--accent-color)' : '#fff', color: filterPrint === 'unprinted' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >ยังไม่พิมพ์</button>
           <button 
-            onClick={() => setFilterPrint('printed')}
+            onClick={() => setFilterPrint(filterPrint === 'printed' ? 'all' : 'printed')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterPrint === 'printed' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterPrint === 'printed' ? 'var(--primary-color)' : '#fff', color: filterPrint === 'printed' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >พิมพ์แล้ว</button>
         </div>
