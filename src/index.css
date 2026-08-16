@@ -531,10 +531,10 @@ input[type="number"] {
     padding-bottom: 4px !important;
   }
 
-  .col-qty { width: 15%; }
-  .col-desc { width: 45%; text-align: left !important; }
-  .col-price { width: 20%; text-align: right !important; }
-  .col-amount { width: 20%; text-align: right !important; }
+  .col-qty { width: 10%; }
+  .col-desc { width: 60%; text-align: left !important; }
+  .col-price { width: 15%; text-align: right !important; }
+  .col-amount { width: 15%; text-align: right !important; }
 
   .invoice-items-table td.col-desc {
     text-align: left;
