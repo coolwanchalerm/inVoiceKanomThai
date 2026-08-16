@@ -96,13 +96,25 @@ export default function Dashboard({ invoices = [], items = [], onNavigateToBacku
   const stats = useMemo(() => {
     const totalSales = filteredData.invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
     const totalInvoices = filteredData.invoices.length;
-    const totalItems = filteredData.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    
+    const isDiscountItem = (item) => {
+      return (
+        (item.description && item.description.startsWith('ส่วนลด')) ||
+        Number(item.amount) < 0 ||
+        Number(item.unitPrice) < 0
+      );
+    };
+
+    const totalItems = filteredData.items.reduce((sum, item) => {
+      if (isDiscountItem(item)) return sum;
+      return sum + (Number(item.quantity) || 0);
+    }, 0);
     
     const itemMap = {};
     filteredData.items.forEach(item => {
       // Skip discount lines
-      if (item.description.startsWith('ส่วนลดโปรโมชั่น')) return;
-      itemMap[item.description] = (itemMap[item.description] || 0) + item.quantity;
+      if (isDiscountItem(item)) return;
+      itemMap[item.description] = (itemMap[item.description] || 0) + (Number(item.quantity) || 0);
     });
     
     let topItem = '-';

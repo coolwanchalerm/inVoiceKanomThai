@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle, Package } from 'lucide-react';
+import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle, Package, Tag } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
 import { cleanNumberInput, handleNumberFocus } from '../utils/numberInput';
 
@@ -35,7 +35,9 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       setDate(invoiceToEdit.date || getTodayThaiDate());
       setCustomerAddress(invoiceToEdit.customerAddress || '');
       setCustomerTaxId(invoiceToEdit.customerTaxId || '');
-      setItems(invoiceToEdit.items || []);
+      // Filter out auto-calculated promo discounts so computedDiscounts doesn't duplicate them
+      const regularItems = (invoiceToEdit.items || []).filter(item => !item.description?.startsWith('ส่วนลดโปรโมชั่น'));
+      setItems(regularItems);
     } else {
       setCustomerName('');
       setDate(getTodayThaiDate());
@@ -64,16 +66,21 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
   };
 
   const addItem = () => {
-    if (!newItem.description) {
-      if (showModal) showModal('ข้อมูลไม่ครบถ้วน', 'กรุณาระบุชื่อสินค้า', 'warning');
-      else alert('กรุณาระบุชื่อสินค้า');
+    if (!newItem.description || !newItem.description.trim()) {
+      alert('กรุณาระบุชื่อสินค้า หรือส่วนลด');
       return;
     }
     const qty = Number(newItem.quantity) || 1;
-    const price = Number(newItem.unitPrice) || 0;
+    let price = Number(newItem.unitPrice) || 0;
+
+    // If description starts with ส่วนลด and price is positive, convert to negative
+    if (newItem.description.trim().startsWith('ส่วนลด') && price > 0) {
+      price = -Math.abs(price);
+    }
+
     const item = {
       id: Date.now(),
-      description: newItem.description,
+      description: newItem.description.trim(),
       quantity: qty,
       unitPrice: price,
       amount: qty * price
@@ -94,6 +101,18 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
     });
   };
 
+  const applyDiscountPreset = () => {
+    setNewItem({
+      description: 'ส่วนลด',
+      quantity: 1,
+      unitPrice: ''
+    });
+    setTimeout(() => {
+      const priceInput = document.getElementById('newItemPrice');
+      if (priceInput) priceInput.focus();
+    }, 50);
+  };
+
   const computedDiscounts = React.useMemo(() => {
     const discounts = [];
     
@@ -101,7 +120,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
     const itemGroups = {};
     items.forEach(item => {
       // Don't calculate discount for a discount line
-      if (item.description.startsWith('ส่วนลดโปรโมชั่น')) return;
+      if (item.description?.startsWith('ส่วนลด') || Number(item.amount) < 0 || Number(item.unitPrice) < 0) return;
       
       if (!itemGroups[item.description]) {
         itemGroups[item.description] = { quantity: 0, product: products.find(p => p.name === item.description) };
@@ -132,20 +151,18 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
     return discounts;
   }, [items, products]);
 
-  const subTotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const totalDiscount = computedDiscounts.reduce((sum, d) => sum + d.amount, 0);
-  const totalAmount = Math.max(0, subTotal - totalDiscount);
+  const itemsSum = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const promoDiscountTotal = computedDiscounts.reduce((sum, d) => sum + d.amount, 0);
+  const totalAmount = Math.max(0, itemsSum - promoDiscountTotal);
 
   const handleSaveAndPrint = async (e) => {
     e.preventDefault();
     if (!customerName) {
-      if (showModal) showModal('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกชื่อลูกค้า', 'warning');
-      else alert('กรุณากรอกชื่อลูกค้า');
+      alert('กรุณากรอกชื่อลูกค้า');
       return;
     }
     if (items.length === 0) {
-      if (showModal) showModal('ข้อมูลไม่ครบถ้วน', 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ', 'warning');
-      else alert('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
+      alert('กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ');
       return;
     }
 
@@ -231,11 +248,37 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
         <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             
-            {/* Presets */}
-            {topProducts.length > 0 && (
-              <div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>แนะนำด่วน (คลิกเพื่อเพิ่ม)</div>
-                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="hide-scrollbar">
+            {/* Presets & Quick Discount Button */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  {topProducts.length > 0 ? 'แนะนำด่วน (คลิกเพื่อเพิ่ม)' : 'ทางลัด'}
+                </div>
+                <button 
+                  type="button" 
+                  onClick={applyDiscountPreset} 
+                  style={{ 
+                    padding: '0.35rem 0.75rem', 
+                    borderRadius: '20px', 
+                    border: '1px solid #86efac', 
+                    backgroundColor: '#f0fdf4', 
+                    color: '#166534', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '600', 
+                    cursor: 'pointer', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.35rem',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)' 
+                  }}
+                >
+                  <Tag size={13} color="#16a34a" />
+                  + เพิ่มส่วนลด
+                </button>
+              </div>
+
+              {topProducts.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="hide-scrollbar">
                   {topProducts.map((preset, idx) => (
                     <button key={idx} type="button" onClick={() => applyPreset(preset)} style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#fff', color: '#1e293b', fontSize: '0.85rem', whiteSpace: 'nowrap', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                       <Plus size={12} color="var(--primary-color)" />
@@ -243,13 +286,13 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 100%' }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>เพิ่มรายการใหม่</div>
-                <input type="text" list="products-list" placeholder="ชื่อขนม..." value={newItem.description} onChange={(e) => { const val = e.target.value; setNewItem(prev => { const updated = { ...prev, description: val }; const matchedProduct = products.find(p => p.name === val); if (matchedProduct) { updated.unitPrice = matchedProduct.price; } return updated; }); }} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '1rem' }} />
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>เพิ่มรายการใหม่ / ส่วนลด</div>
+                <input type="text" list="products-list" placeholder="ชื่อขนม หรือ ส่วนลด..." value={newItem.description} onChange={(e) => { const val = e.target.value; setNewItem(prev => { const updated = { ...prev, description: val }; const matchedProduct = products.find(p => p.name === val); if (matchedProduct) { updated.unitPrice = matchedProduct.price; } return updated; }); }} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '1rem' }} />
                 <datalist id="products-list">
                   {products.map(p => (
                     <option key={p.id} value={p.name} />
@@ -273,10 +316,10 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                 />
               </div>
               <div style={{ flex: 1.5 }}>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (หรือยอดส่วนลด)</div>
                 <input 
+                  id="newItemPrice"
                   type="number" 
-                  min="0"
                   placeholder="0"
                   value={newItem.unitPrice} 
                   onChange={(e) => setNewItem({ ...newItem, unitPrice: cleanNumberInput(e.target.value) })} 
@@ -284,6 +327,8 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                   onBlur={() => {
                     if (newItem.unitPrice === '') {
                       setNewItem(prev => ({ ...prev, unitPrice: 0 }));
+                    } else if (newItem.description?.trim().startsWith('ส่วนลด') && Number(newItem.unitPrice) > 0) {
+                      setNewItem(prev => ({ ...prev, unitPrice: -Math.abs(Number(prev.unitPrice)) }));
                     }
                   }}
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} 
@@ -291,7 +336,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
               </div>
               <button type="button" onClick={addItem} className="btn btn-primary" style={{ flex: '1 1 100%', height: '47px', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Plus size={18} />
-                เพิ่ม
+                เพิ่มรายการ
               </button>
             </div>
           </div>
@@ -312,60 +357,82 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                 <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>เพิ่มรายการด้านบนเพื่อเริ่มต้น</div>
               </div>
             ) : (
-              items.map((item) => (
-                <div key={item.id} className="card" style={{ padding: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', position: 'relative' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <div style={{ flex: 1, paddingRight: '2.5rem' }}>
-                      <input type="text" value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: '600', fontSize: '1.05rem', color: '#1e293b', outline: 'none', padding: 0 }} />
-                    </div>
-                    <button type="button" onClick={() => removeItem(item.id)} title="ลบรายการ" style={{ position: 'absolute', top: '1rem', right: '1rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
-                      <input 
-                        type="number"
-                        min="1"
-                        value={item.quantity} 
-                        onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
-                        onFocus={handleNumberFocus}
-                        onBlur={() => {
-                          if (!item.quantity || Number(item.quantity) < 1) {
-                            handleItemChange(item.id, 'quantity', 1);
-                          }
-                        }}
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: '#1e293b', height: '47px' }}
-                      />
+              items.map((item) => {
+                const isDiscount = (item.description && item.description.startsWith('ส่วนลด')) || Number(item.amount) < 0 || Number(item.unitPrice) < 0;
+                return (
+                  <div 
+                    key={item.id} 
+                    className="card" 
+                    style={{ 
+                      padding: '1rem', 
+                      border: isDiscount ? '1px solid #bbf7d0' : '1px solid #e2e8f0', 
+                      backgroundColor: isDiscount ? '#f0fdf4' : '#fff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)', 
+                      position: 'relative' 
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <div style={{ flex: 1, paddingRight: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        {isDiscount && <Tag size={16} color="#16a34a" style={{ flexShrink: 0 }} />}
+                        <input 
+                          type="text" 
+                          value={item.description} 
+                          onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} 
+                          style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: '600', fontSize: '1.05rem', color: isDiscount ? '#166534' : '#1e293b', outline: 'none', padding: 0 }} 
+                        />
+                      </div>
+                      <button type="button" onClick={() => removeItem(item.id)} title="ลบรายการ" style={{ position: 'absolute', top: '1rem', right: '1rem', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                     
-                    <div style={{ flex: 1.5 }}>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา/หน่วย</div>
-                      <input 
-                        type="number" 
-                        min="0"
-                        placeholder="0"
-                        value={item.unitPrice} 
-                        onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} 
-                        onFocus={handleNumberFocus}
-                        onBlur={() => {
-                          if (item.unitPrice === '') {
-                            handleItemChange(item.id, 'unitPrice', 0);
-                          }
-                        }}
-                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} 
-                      />
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
+                        <input 
+                          type="number"
+                          min="1"
+                          value={item.quantity} 
+                          onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
+                          onFocus={handleNumberFocus}
+                          onBlur={() => {
+                            if (!item.quantity || Number(item.quantity) < 1) {
+                              handleItemChange(item.id, 'quantity', 1);
+                            }
+                          }}
+                          style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: '#1e293b', height: '47px' }}
+                        />
+                      </div>
+                      
+                      <div style={{ flex: 1.5 }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา/หน่วย</div>
+                        <input 
+                          type="number" 
+                          placeholder="0"
+                          value={item.unitPrice} 
+                          onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} 
+                          onFocus={handleNumberFocus}
+                          onBlur={() => {
+                            if (item.unitPrice === '') {
+                              handleItemChange(item.id, 'unitPrice', 0);
+                            } else if (item.description?.trim().startsWith('ส่วนลด') && Number(item.unitPrice) > 0) {
+                              handleItemChange(item.id, 'unitPrice', -Math.abs(Number(item.unitPrice)));
+                            }
+                          }}
+                          style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: Number(item.unitPrice) < 0 ? '#16a34a' : '#1e293b' }} 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.5rem' }}>รวม:</div>
+                      <div style={{ fontWeight: '700', color: Number(item.amount) < 0 ? '#16a34a' : 'var(--primary-color)', fontSize: '1.1rem' }}>
+                        {Number(item.amount) < 0 ? `-฿${Math.abs(Number(item.amount)).toLocaleString()}` : `฿${Number(item.amount).toLocaleString()}`}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.5rem' }}>รวม:</div>
-                    <div style={{ fontWeight: '700', color: 'var(--primary-color)', fontSize: '1.1rem' }}>฿{item.amount.toLocaleString()}</div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

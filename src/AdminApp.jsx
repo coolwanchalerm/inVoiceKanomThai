@@ -125,7 +125,8 @@ export default function AdminApp() {
   const topProducts = React.useMemo(() => {
     const freq = {};
     items.forEach(item => {
-      freq[item.description] = (freq[item.description] || 0) + item.quantity;
+      if ((item.description && item.description.startsWith('ส่วนลด')) || Number(item.amount) < 0 || Number(item.unitPrice) < 0) return;
+      freq[item.description] = (freq[item.description] || 0) + (Number(item.quantity) || 0);
     });
     const sortedDesc = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
     const top5Names = sortedDesc.slice(0, 5);

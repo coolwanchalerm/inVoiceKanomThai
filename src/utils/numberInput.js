@@ -18,6 +18,10 @@
 export function cleanNumberInput(value) {
   if (value === '' || value === null || value === undefined) return '';
   const str = String(value);
+  if (str === '-') return '-';
+  if (str.startsWith('-')) {
+    return '-' + str.slice(1).replace(/^0+(?=\d)/, '');
+  }
   // Remove leading zeros followed by any digit (preserves decimals like '0.5' and single '0')
   return str.replace(/^0+(?=\d)/, '');
 }
