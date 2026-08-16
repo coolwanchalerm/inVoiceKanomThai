@@ -507,7 +507,7 @@ input[type="number"] {
 
   .invoice-items-table th, .invoice-items-table td {
     border: 1px solid #000000;
-    padding: 12px;
+    padding: 8px 10px;
     text-align: center;
   }
   
@@ -527,14 +527,14 @@ input[type="number"] {
   .sub-header-row th {
     font-size: 12px;
     font-weight: normal;
-    padding-top: 4px !important;
+    padding-top: 3px !important;
     padding-bottom: 4px !important;
   }
 
-  .col-qty { width: 10%; }
-  .col-desc { width: 60%; text-align: left !important; }
-  .col-price { width: 15%; text-align: right !important; }
-  .col-amount { width: 15%; text-align: right !important; }
+  .col-qty { width: 12%; white-space: nowrap; }
+  .col-desc { width: 54%; text-align: left !important; }
+  .col-price { width: 17%; text-align: right !important; white-space: nowrap; }
+  .col-amount { width: 17%; text-align: right !important; white-space: nowrap; }
 
   .invoice-items-table td.col-desc {
     text-align: left;
@@ -547,12 +547,14 @@ input[type="number"] {
   .total-row-label {
     font-weight: bold;
     text-align: right !important;
-    padding-right: 20px !important;
+    padding-right: 12px !important;
+    white-space: nowrap;
   }
 
   .total-row-val {
     font-weight: bold;
     text-align: right !important;
+    white-space: nowrap;
   }
 
   /* Empty row for minimum height spacing if needed */
