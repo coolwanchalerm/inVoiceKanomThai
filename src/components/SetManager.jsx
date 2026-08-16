@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Layers } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { cleanNumberInput, handleNumberFocus } from '../utils/numberInput';
 
 export default function SetManager() {
   const [sets, setSets] = useState([]);
@@ -107,24 +108,24 @@ export default function SetManager() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>ราคาขาย (บาท)</label>
-              <input type="number" value={form.set_price} onChange={e => setForm({...form, set_price: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min="0" placeholder="0" value={form.set_price} onChange={e => setForm({...form, set_price: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>จำนวนขนมที่ลูกค้าเลือกได้ (ชิ้น)</label>
-              <input type="number" min="1" value={form.dessert_qty} onChange={e => setForm({...form, dessert_qty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min="1" value={form.dessert_qty} onChange={e => setForm({...form, dessert_qty: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} onBlur={() => { if (!form.dessert_qty || Number(form.dessert_qty) < 1) setForm(prev => ({ ...prev, dessert_qty: 1 })); }} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>จำนวนเครื่องดื่มที่ลูกค้าเลือกได้ (ขวด)</label>
-              <input type="number" min="0" value={form.drink_qty} onChange={e => setForm({...form, drink_qty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min="0" value={form.drink_qty} onChange={e => setForm({...form, drink_qty: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} onBlur={() => { if (form.drink_qty === '') setForm(prev => ({ ...prev, drink_qty: 0 })); }} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
             </div>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>จำกัดราคาขนมสูงสุด (บาท/ชิ้น)</label>
-              <input type="number" value={form.allowed_dessert_max_price} onChange={e => setForm({...form, allowed_dessert_max_price: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input type="number" min="0" placeholder="0" value={form.allowed_dessert_max_price} onChange={e => setForm({...form, allowed_dessert_max_price: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
             </div>
           </div>
           

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Box, X, Check } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import { cleanNumberInput, handleNumberFocus } from '../utils/numberInput';
 
 export default function BoxManager() {
   const [boxes, setBoxes] = useState([]);
@@ -49,11 +50,12 @@ export default function BoxManager() {
   };
 
   const handleCapacityChange = (val) => {
-    const targetCap = Number(val);
-    const code = suggestBoxCode(targetCap);
+    const cleaned = cleanNumberInput(val);
+    const targetCap = cleaned === '' ? '' : Number(cleaned);
+    const code = suggestBoxCode(targetCap || 1);
     setForm(prev => ({
       ...prev,
-      capacity: targetCap,
+      capacity: cleaned,
       box_code: code
     }));
   };
@@ -130,7 +132,19 @@ export default function BoxManager() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>ความจุ (ชิ้น)</label>
-              <input type="number" min="1" value={form.capacity} onChange={e => handleCapacityChange(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              <input 
+                type="number" 
+                min="1" 
+                value={form.capacity} 
+                onChange={e => handleCapacityChange(e.target.value)} 
+                onFocus={handleNumberFocus}
+                onBlur={() => {
+                  if (!form.capacity || Number(form.capacity) < 1) {
+                    handleCapacityChange(1);
+                  }
+                }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1' }} 
+              />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.25rem' }}>รหัสกล่อง</label>

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Package, Plus, Trash2, Edit2, Check, X, ChevronLeft, ChevronRight, Search, Upload, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import { optimizeImage } from '../utils/imageOptimizer';
+import { cleanNumberInput, handleNumberFocus } from '../utils/numberInput';
 
 export default function ProductManager({ products = [], onManageProduct }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -155,8 +156,10 @@ export default function ProductManager({ products = [], onManageProduct }) {
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
                 <input 
                   type="number" 
+                  min="0"
                   value={newItem.price} 
-                  onChange={e => setNewItem({...newItem, price: e.target.value})}
+                  onChange={e => setNewItem({...newItem, price: cleanNumberInput(e.target.value)})}
+                  onFocus={handleNumberFocus}
                   placeholder="0"
                   style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
                 />
@@ -222,11 +225,11 @@ export default function ProductManager({ products = [], onManageProduct }) {
               <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวนชิ้น/เซ็ต</div>
-                  <input type="number" min="2" placeholder="เช่น 3" value={newItem.promoQty} onChange={e => setNewItem({...newItem, promoQty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  <input type="number" min="2" placeholder="เช่น 3" value={newItem.promoQty} onChange={e => setNewItem({...newItem, promoQty: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคาโปรโมชั่น (บาท)</div>
-                  <input type="number" min="0" placeholder="เช่น 100" value={newItem.promoPrice} onChange={e => setNewItem({...newItem, promoPrice: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  <input type="number" min="0" placeholder="เช่น 100" value={newItem.promoPrice} onChange={e => setNewItem({...newItem, promoPrice: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
                 </div>
               </div>
             )}
@@ -281,8 +284,11 @@ export default function ProductManager({ products = [], onManageProduct }) {
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา (บาท)</div>
                       <input 
                         type="number" 
+                        min="0"
                         value={editItem.price} 
-                        onChange={e => setEditItem({...editItem, price: e.target.value})}
+                        onChange={e => setEditItem({...editItem, price: cleanNumberInput(e.target.value)})}
+                        onFocus={handleNumberFocus}
+                        placeholder="0"
                         style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none' }}
                       />
                     </div>
@@ -347,11 +353,11 @@ export default function ProductManager({ products = [], onManageProduct }) {
                     <div style={{ display: 'flex', gap: '1rem', padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวนชิ้น/เซ็ต</div>
-                        <input type="number" min="2" placeholder="เช่น 3" value={editItem.promoQty} onChange={e => setEditItem({...editItem, promoQty: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                        <input type="number" min="2" placeholder="เช่น 3" value={editItem.promoQty} onChange={e => setEditItem({...editItem, promoQty: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคาโปรโมชั่น (บาท)</div>
-                        <input type="number" min="0" placeholder="เช่น 100" value={editItem.promoPrice} onChange={e => setEditItem({...editItem, promoPrice: e.target.value})} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                        <input type="number" min="0" placeholder="เช่น 100" value={editItem.promoPrice} onChange={e => setEditItem({...editItem, promoPrice: cleanNumberInput(e.target.value)})} onFocus={handleNumberFocus} style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }} />
                       </div>
                     </div>
                   )}

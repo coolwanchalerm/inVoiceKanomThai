@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Printer, ClipboardCheck, AlertCircle, Package } from 'lucide-react';
 import { getThaiBahtText } from '../utils/thaiBaht';
+import { cleanNumberInput, handleNumberFocus } from '../utils/numberInput';
 
 export default function InvoiceGenerator({ onSubmitInvoice, products = [], topProducts = [], customers = [], invoiceToEdit = null, onCancelEdit }) {
   const [customerName, setCustomerName] = useState('');
@@ -44,15 +45,16 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
     }
   }, [invoiceToEdit]);
 
-  const [newItem, setNewItem] = useState({ description: '', quantity: 1, unitPrice: 0 });
+  const [newItem, setNewItem] = useState({ description: '', quantity: 1, unitPrice: '' });
 
   const handleItemChange = (id, field, value) => {
+    const cleanedValue = (field === 'quantity' || field === 'unitPrice') ? cleanNumberInput(value) : value;
     setItems(items.map(item => {
       if (item.id === id) {
-        const updated = { ...item, [field]: value };
+        const updated = { ...item, [field]: cleanedValue };
         if (field === 'quantity' || field === 'unitPrice') {
-          const qty = field === 'quantity' ? Number(value) : Number(item.quantity);
-          const price = field === 'unitPrice' ? Number(value) : Number(item.unitPrice);
+          const qty = field === 'quantity' ? (Number(cleanedValue) || 0) : (Number(item.quantity) || 0);
+          const price = field === 'unitPrice' ? (Number(cleanedValue) || 0) : (Number(item.unitPrice) || 0);
           updated.amount = qty * price;
         }
         return updated;
@@ -67,15 +69,17 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       else alert('กรุณาระบุชื่อสินค้า');
       return;
     }
+    const qty = Number(newItem.quantity) || 1;
+    const price = Number(newItem.unitPrice) || 0;
     const item = {
       id: Date.now(),
       description: newItem.description,
-      quantity: Number(newItem.quantity),
-      unitPrice: Number(newItem.unitPrice),
-      amount: Number(newItem.quantity) * Number(newItem.unitPrice)
+      quantity: qty,
+      unitPrice: price,
+      amount: qty * price
     };
     setItems([...items, item]);
-    setNewItem({ description: '', quantity: 1, unitPrice: 0 });
+    setNewItem({ description: '', quantity: 1, unitPrice: '' });
   };
 
   const removeItem = (id) => {
@@ -256,14 +260,34 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
                 <input 
                   type="number"
+                  min="1"
                   value={newItem.quantity} 
-                  onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
+                  onChange={(e) => setNewItem({ ...newItem, quantity: cleanNumberInput(e.target.value) })}
+                  onFocus={handleNumberFocus}
+                  onBlur={() => {
+                    if (!newItem.quantity || Number(newItem.quantity) < 1) {
+                      setNewItem(prev => ({ ...prev, quantity: 1 }));
+                    }
+                  }}
                   style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: '#1e293b', height: '47px' }}
                 />
               </div>
               <div style={{ flex: 1.5 }}>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา</div>
-                <input type="number" value={newItem.unitPrice} onChange={(e) => setNewItem({ ...newItem, unitPrice: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} />
+                <input 
+                  type="number" 
+                  min="0"
+                  placeholder="0"
+                  value={newItem.unitPrice} 
+                  onChange={(e) => setNewItem({ ...newItem, unitPrice: cleanNumberInput(e.target.value) })} 
+                  onFocus={handleNumberFocus}
+                  onBlur={() => {
+                    if (newItem.unitPrice === '') {
+                      setNewItem(prev => ({ ...prev, unitPrice: 0 }));
+                    }
+                  }}
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} 
+                />
               </div>
               <button type="button" onClick={addItem} className="btn btn-primary" style={{ flex: '1 1 100%', height: '47px', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Plus size={18} />
@@ -304,15 +328,35 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>จำนวน</div>
                       <input 
                         type="number"
+                        min="1"
                         value={item.quantity} 
-                        onChange={(e) => handleItemChange(item.id, 'quantity', Number(e.target.value))}
+                        onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
+                        onFocus={handleNumberFocus}
+                        onBlur={() => {
+                          if (!item.quantity || Number(item.quantity) < 1) {
+                            handleItemChange(item.id, 'quantity', 1);
+                          }
+                        }}
                         style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem', backgroundColor: '#fff', color: '#1e293b', height: '47px' }}
                       />
                     </div>
                     
                     <div style={{ flex: 1.5 }}>
                       <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>ราคา/หน่วย</div>
-                      <input type="number" value={item.unitPrice} onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} />
+                      <input 
+                        type="number" 
+                        min="0"
+                        placeholder="0"
+                        value={item.unitPrice} 
+                        onChange={(e) => handleItemChange(item.id, 'unitPrice', e.target.value)} 
+                        onFocus={handleNumberFocus}
+                        onBlur={() => {
+                          if (item.unitPrice === '') {
+                            handleItemChange(item.id, 'unitPrice', 0);
+                          }
+                        }}
+                        style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', outline: 'none', fontSize: '1rem' }} 
+                      />
                     </div>
                   </div>
                   
