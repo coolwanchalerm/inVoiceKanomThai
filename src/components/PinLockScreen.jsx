@@ -110,7 +110,7 @@ export default function PinLockScreen() {
             </div>
           </div>
 
-          <h1 className="pin-lock-title">บ้านขนมไทย</h1>
+          <h1 className="pin-lock-title">ขนมไทยแทนคุณ</h1>
           <p className="pin-lock-subtitle">กรุณากรอกรหัส PIN 6 หลักเพื่อเข้าใช้งาน</p>
         </div>
 
@@ -188,12 +188,6 @@ export default function PinLockScreen() {
               })}
             </div>
           ))}
-        </div>
-
-        {/* Footer Security Watermark */}
-        <div className="pin-lock-footer">
-          <ShieldCheck size={14} style={{ color: 'var(--accent-color)' }} />
-          <span>ระบบจัดการข้อมูลร้านค้า • ปลอดภัย 100%</span>
         </div>
 
       </div>
