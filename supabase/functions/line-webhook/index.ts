@@ -5,6 +5,7 @@ const LINE_ACCESS_TOKEN = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN') ?? '';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? '';
+const GROQ_MODEL = Deno.env.get('GROQ_MODEL') || 'llama-3.1-8b-instant';
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -132,33 +133,88 @@ ${dynamicRule}
   ]
 }`;
 
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0
-      })
-    });
-    
-    if (!res.ok) {
-        const errText = await res.text();
-        throw new Error("Groq API Error: " + errText);
-    }
-
-    const data = await res.json();
-    if (data.choices && data.choices[0].message.content) {
-      return JSON.parse(data.choices[0].message.content);
-    }
-  } catch(e: any) {
-    throw new Error("Parse Error: " + e.message);
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY is not configured in Supabase secrets.");
   }
+
+  // Fetch available models from Groq /models API if possible
+  let candidateModels = [
+    GROQ_MODEL,
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+    "llama3-70b-8192",
+    "llama3-8b-8192",
+    "mixtral-8x7b-32768"
+  ].filter(Boolean) as string[];
+
+  try {
+    const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+      headers: { "Authorization": `Bearer ${GROQ_API_KEY}` }
+    });
+    if (modelsRes.ok) {
+      const modelsData = await modelsRes.json();
+      if (Array.isArray(modelsData.data) && modelsData.data.length > 0) {
+        const availableIds = modelsData.data.map((m: any) => m.id);
+        const matched = candidateModels.filter(m => availableIds.includes(m));
+        if (matched.length > 0) {
+          candidateModels = matched;
+        } else {
+          const chatModels = availableIds.filter((id: string) => 
+            !id.includes("whisper") && !id.includes("guard") && !id.includes("embed")
+          );
+          if (chatModels.length > 0) {
+            candidateModels = chatModels;
+          }
+        }
+      }
+    } else {
+      const errModelsText = await modelsRes.text();
+      console.warn("Could not fetch models list:", errModelsText);
+    }
+  } catch (e: any) {
+    console.warn("Failed to query Groq /models:", e.message);
+  }
+
+  const uniqueModels = Array.from(new Set(candidateModels));
+  const errors: string[] = [];
+
+  for (const model of uniqueModels) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          temperature: 0
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`Groq API Error on model ${model}:`, errText);
+        errors.push(`[${model}]: ${errText}`);
+        continue;
+      }
+
+      const data = await res.json();
+      if (data.choices && data.choices[0]?.message?.content) {
+        return JSON.parse(data.choices[0].message.content);
+      }
+    } catch (e: any) {
+      console.warn(`Error with model ${model}:`, e.message);
+      errors.push(`[${model}]: ${e.message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error("Groq API Error: " + errors.join(" | "));
+  }
+
   return currentDraft;
 }
 

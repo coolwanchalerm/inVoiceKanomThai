@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home, BarChart2, Box, Layers } from 'lucide-react';
+import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home, BarChart2, Box, Layers, Lock, KeyRound } from 'lucide-react';
 import liff from '@line/liff';
 import { supabase } from './supabaseClient';
+import { useAuthPin } from './context/AuthPinContext';
 import InvoiceGenerator from './components/InvoiceGenerator';
 import Dashboard from './components/Dashboard';
 import InvoiceHistory from './components/InvoiceHistory';
@@ -12,9 +13,12 @@ import ProductManager from './components/ProductManager';
 import BackupManager from './components/BackupManager';
 import BoxManager from './components/BoxManager';
 import SetManager from './components/SetManager';
+import ChangePinModal from './components/ChangePinModal';
 
 export default function AdminApp() {
+  const { lock } = useAuthPin();
   const [view, setView] = useState('generator');
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   
   const [dbInvoices, setDbInvoices] = useState([]);
   const [dbItems, setDbItems] = useState([]);
@@ -451,7 +455,7 @@ export default function AdminApp() {
 
         {/* Main Content */}
         <main className="main-content">
-          <header className="page-header">
+          <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
               <h1 className="page-title">
                 {view === 'generator' && 'ออกใบเสร็จรับเงิน'}
@@ -462,22 +466,48 @@ export default function AdminApp() {
               </h1>
             </div>
 
-            {/* Sync Status Badge - Show only on loading or error */}
-            {(loading || syncStatus !== 'success') && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: '#f8d7da', color: '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
-                {loading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>กำลังดึงข้อมูลฐานข้อมูล...</span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc3545' }}></span>
-                    <span>การเชื่อมต่อผิดพลาด</span>
-                  </>
-                )}
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* Sync Status Badge - Show only on loading or error */}
+              {(loading || syncStatus !== 'success') && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', backgroundColor: '#f8d7da', color: '#842029', padding: '0.4rem 0.8rem', borderRadius: '20px', fontWeight: '600' }}>
+                  {loading ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>กำลังดึงข้อมูล...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc3545' }}></span>
+                      <span>การเชื่อมต่อผิดพลาด</span>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Change PIN Button */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setIsChangePinOpen(true)}
+                title="เปลี่ยนรหัส PIN 6 หลัก"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.75rem', fontSize: '0.85rem', borderRadius: '8px' }}
+              >
+                <KeyRound size={15} />
+                <span>เปลี่ยนรหัส PIN</span>
+              </button>
+
+              {/* Manual Lock Button */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={lock}
+                title="ล็อกหน้าจอทันที"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.75rem', fontSize: '0.85rem', borderRadius: '8px', color: '#dc2626', borderColor: '#fca5a5' }}
+              >
+                <Lock size={15} />
+                <span>ล็อกหน้าจอ</span>
+              </button>
+            </div>
           </header>
 
           {/* Main Views */}
@@ -582,6 +612,12 @@ export default function AdminApp() {
           items={printItems} 
         />
       )}
+
+      {/* Change PIN Modal */}
+      <ChangePinModal
+        isOpen={isChangePinOpen}
+        onClose={() => setIsChangePinOpen(false)}
+      />
     </>
   );
 }
