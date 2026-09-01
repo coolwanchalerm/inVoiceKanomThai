@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer, Edit, Copy, CheckCircle, Clock, Package } from 'lucide-react';
+import { Search, Receipt, Calendar, ExternalLink, Trash2, ChevronLeft, ChevronRight, Printer, Edit, Copy, CheckCircle, Truck, Package } from 'lucide-react';
 
 export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTogglePrint, onEdit, onUpdateStatus, items = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,7 +93,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
           <button 
             onClick={() => setFilterStatus('pending')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'pending' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'pending' ? 'var(--accent-color)' : '#fff', color: filterStatus === 'pending' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >รอโอน</button>
+          >รอส่ง</button>
           <button 
             onClick={() => setFilterStatus('shipped')}
             style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: filterStatus === 'shipped' ? 'none' : '1px solid #e2e8f0', backgroundColor: filterStatus === 'shipped' ? 'var(--primary-color)' : '#fff', color: filterStatus === 'shipped' ? '#fff' : '#64748b', fontWeight: '500', fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -166,7 +166,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1e293b', marginBottom: '2px' }}>{inv.customerName || 'ลูกค้าทั่วไป'}</div>
                   <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span>ใบเสร็จ {inv.id}</span>
+                    <span>{inv.customerAddress || '-'}</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
@@ -229,7 +229,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginLeft: '56px' }}>
                 <div style={{ fontSize: '0.85rem', color: '#475569' }}>
-                  เวลาสร้างรายการ: <span style={{ marginLeft: '4px' }}>{inv.date ? new Date(inv.date).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) : '-'}</span>
+                  วันที่จัดส่ง: <span style={{ marginLeft: '4px' }}>{inv.date ? new Date(inv.date).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric' }) : '-'}</span>
                 </div>
               </div>
 
@@ -237,7 +237,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   <button
                     onClick={() => onUpdateStatus && onUpdateStatus(inv.id, inv.status === 'shipped' ? 'pending' : 'shipped')}
-                    title={inv.status === 'shipped' ? "ส่งแล้ว" : "รอโอน"}
+                    title={inv.status === 'shipped' ? "ส่งแล้ว" : "รอส่ง"}
                     style={{
                       padding: '0.35rem',
                       borderRadius: '8px',
@@ -251,7 +251,7 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                       justifyContent: 'center',
                     }}
                   >
-                    {inv.status === 'shipped' ? <Package size={16} /> : <Clock size={16} />}
+                    {inv.status === 'shipped' ? <Package size={16} /> : <Truck size={16} />}
                   </button>
 
                   <button

@@ -287,7 +287,7 @@ serve(async (req) => {
                 ]
               }));
               const statusColor = order.status === 'paid' ? '#1DB446' : order.status === 'shipped' ? '#3b82f6' : '#eab308';
-              const statusText = order.status === 'paid' ? '🟢 จ่ายแล้ว' : order.status === 'shipped' ? '📦 ส่งแล้ว' : '🟡 รอโอน';
+              const statusText = order.status === 'paid' ? '🟢 จ่ายแล้ว' : order.status === 'shipped' ? '📦 ส่งแล้ว' : '🟡 รอส่ง';
               
               return {
                 type: "bubble",
@@ -374,7 +374,7 @@ serve(async (req) => {
                   {
                     type: "box", layout: "horizontal", margin: "sm",
                     contents: [
-                      { type: "text", text: "🟡 รอโอน", size: "xs", color: "#64748b" },
+                      { type: "text", text: "🟡 รอส่ง", size: "xs", color: "#64748b" },
                       { type: "text", text: `${pendingCount} บิล`, size: "xs", color: "#0f172a", align: "end" }
                     ]
                   },
