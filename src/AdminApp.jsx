@@ -45,6 +45,32 @@ export default function AdminApp() {
     } : null, confirmText, cancelText });
   };
 
+  // Detect if running as PWA (Home Screen standalone mode)
+  const isStandaloneMode = () =>
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+
+  // Smart print: ถ้าอยู่ใน PWA standalone mode บน iOS ให้แสดงปุ่มเปิดใน Safari
+  // เนื่องจาก iOS 27 บล็อก window.print() ใน standalone mode
+  const safePrint = () => {
+    if (isStandaloneMode()) {
+      showModal(
+        '🖨️ พิมพ์ใบเสร็จ',
+        'ระบบไม่สามารถเปิดหน้าต่างพิมพ์ได้จากแอปบนหน้าจอหลัก\n\nกรุณาเปิดเว็บไซต์ใน Safari แล้วพิมพ์อีกครั้ง',
+        'info',
+        () => {
+          // เปิด URL ปัจจุบันใน Safari
+          window.open(window.location.href, '_blank');
+        },
+        null,
+        'เปิดใน Safari',
+        'ปิด'
+      );
+    } else {
+      window.print();
+    }
+  };
+
   // Sync data from Supabase
   const fetchData = async () => {
     setLoading(true);
@@ -234,7 +260,7 @@ export default function AdminApp() {
       setPrintItems(invoiceItems);
       
       setTimeout(() => {
-        window.print();
+        safePrint();
       }, 500);
       
     } catch (err) {
@@ -252,7 +278,7 @@ export default function AdminApp() {
     setPrintInvoice(invoice);
     setPrintItems(invoiceItems);
     setTimeout(() => {
-      window.print();
+      safePrint();
     }, 100);
   };
 
