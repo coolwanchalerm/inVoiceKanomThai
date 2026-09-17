@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Receipt, Loader2, History, Package, Plus, Home, BarChart2, Box, Layers, Lock, KeyRound } from 'lucide-react';
 import liff from '@line/liff';
 import { supabase } from './supabaseClient';
@@ -44,63 +44,6 @@ export default function AdminApp() {
       onCancel();
     } : null, confirmText, cancelText });
   };
-
-  // ref ชี้ไปที่ PrintLayout container สำหรับ html2canvas
-  const printRef = useRef(null);
-
-  // สร้าง PDF จาก PrintLayout แล้วเปิด Share Sheet บน iOS
-  const generatePDF = useCallback(async () => {
-    const element = printRef.current;
-    if (!element) return;
-
-    setLoadingMessage('กำลังสร้าง PDF...');
-    setIsOverlayLoading(true);
-
-    try {
-      const [html2canvas, { jsPDF }] = await Promise.all([
-        import('html2canvas').then(m => m.default),
-        import('jspdf'),
-      ]);
-
-      // ทำให้ element มองเห็นชั่วคราวเพื่อ capture
-      element.style.visibility = 'visible';
-
-      const canvas = await html2canvas(element, {
-        scale: 2,           // ความละเอียดสูง
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-
-      element.style.visibility = 'hidden';
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a5',
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-
-      // เปิด PDF เป็น blob URL → iOS แสดง Share Sheet (พิมพ์/บันทึก/แชร์)
-      const blob = pdf.output('blob');
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-
-      // clean up blob URL หลัง 60 วินาที
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-    } catch (err) {
-      console.error('generatePDF error:', err);
-      showModal('เกิดข้อผิดพลาด', 'ไม่สามารถสร้าง PDF ได้: ' + err.message, 'error');
-    } finally {
-      setIsOverlayLoading(false);
-    }
-  }, []);
 
   // Sync data from Supabase
   const fetchData = async () => {
@@ -291,8 +234,8 @@ export default function AdminApp() {
       setPrintItems(invoiceItems);
       
       setTimeout(() => {
-        generatePDF();
-      }, 600);
+        window.print();
+      }, 500);
       
     } catch (err) {
       console.error('Error saving to Supabase:', err);
@@ -309,8 +252,8 @@ export default function AdminApp() {
     setPrintInvoice(invoice);
     setPrintItems(invoiceItems);
     setTimeout(() => {
-      generatePDF();
-    }, 300);
+      window.print();
+    }, 100);
   };
 
   const handleEditInvoice = (invoiceId) => {
@@ -662,12 +605,13 @@ export default function AdminApp() {
         </nav>
       </div>
 
-      {/* Hidden Print Layout — always mounted for html2canvas capture */}
-      <PrintLayout
-        ref={printRef}
-        invoice={printInvoice}
-        items={printItems}
-      />
+      {/* Hidden Print Layout (Activated on window.print()) */}
+      {printInvoice && (
+        <PrintLayout 
+          invoice={printInvoice} 
+          items={printItems} 
+        />
+      )}
 
       {/* Change PIN Modal */}
       <ChangePinModal

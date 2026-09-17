@@ -402,14 +402,7 @@ input[type="number"] {
 
 /* Print Styles & Layout matching PDF exactly */
 .print-only-container {
-  position: fixed;
-  left: -9999px;
-  top: 0;
-  width: 794px; /* A4 width at 96dpi */
-  background: #fff;
-  visibility: hidden;
-  pointer-events: none;
-  z-index: -1;
+  display: none;
 }
 
 @media print {
