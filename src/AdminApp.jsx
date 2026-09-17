@@ -48,8 +48,13 @@ export default function AdminApp() {
   // ref ชี้ไปที่ PrintLayout container สำหรับ html2canvas
   const printRef = useRef(null);
 
-  // สร้าง PDF จาก PrintLayout แล้วใช้ pdf.save() เพื่อ trigger <a download>
-  // วิธีนี้ไม่ใช้ window.open() จึงไม่โดนบล็อคบน iOS 27 PWA
+  // ตรวจสอบว่ารันใน PWA standalone mode (เพิ่มไปหน้า Home) หรือเปล่า
+  const isStandaloneMode = () =>
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+
+  // สร้าง PDF จาก PrintLayout แล้วใช้ pdf.save() → iOS Share Sheet
+  // ใช้เฉพาะใน PWA standalone mode เท่านั้น
   const generatePDF = useCallback(async () => {
     const element = printRef.current;
     if (!element) return;
@@ -89,7 +94,6 @@ export default function AdminApp() {
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
       // ใช้ save() → trigger <a download> → iOS แสดง Share Sheet
-      // ไม่ใช้ window.open() เพื่อเลี่ยง popup blocker บน iOS 27 PWA
       pdf.save('invoice.pdf');
 
     } catch (err) {
@@ -99,6 +103,17 @@ export default function AdminApp() {
       setIsOverlayLoading(false);
     }
   }, []);
+
+  // Smart print: แยก behavior ระหว่าง browser ปกติ กับ PWA standalone
+  // - Browser (desktop/mobile): window.print() → เปิด print dialog ทันที
+  // - PWA standalone (Home Screen): generatePDF() → Share Sheet บน iOS
+  const smartPrint = useCallback(() => {
+    if (isStandaloneMode()) {
+      generatePDF();
+    } else {
+      window.print();
+    }
+  }, [generatePDF]);
 
   // Sync data from Supabase
   const fetchData = async () => {
@@ -289,7 +304,7 @@ export default function AdminApp() {
       setPrintItems(invoiceItems);
       
       setTimeout(() => {
-        generatePDF();
+        smartPrint();
       }, 600);
       
     } catch (err) {
@@ -307,7 +322,7 @@ export default function AdminApp() {
     setPrintInvoice(invoice);
     setPrintItems(invoiceItems);
     setTimeout(() => {
-      generatePDF();
+      smartPrint();
     }, 300);
   };
 
