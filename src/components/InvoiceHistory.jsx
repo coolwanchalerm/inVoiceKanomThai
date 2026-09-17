@@ -171,23 +171,42 @@ export default function InvoiceHistory({ invoices = [], onDelete, onPrint, onTog
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                   <button 
-                    onClick={() => onPrint && onPrint(inv.id)}
-                    title="พิมพ์ใบเสร็จ"
+                    onClick={() => onPrint && onPrint(inv.id, 'receipt')}
+                    title="พิมพ์ใบเสร็จรับเงิน"
                     style={{ 
                       color: 'var(--primary-color)', 
                       background: 'none', 
                       border: 'none', 
                       cursor: 'pointer', 
-                      padding: '0.4rem 0.75rem', 
+                      padding: '0.4rem 0.6rem', 
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.25rem',
                       borderRadius: '8px', 
                       backgroundColor: '#ebf2ef',
                       fontWeight: '600',
-                      fontSize: '0.85rem'
+                      fontSize: '0.8rem'
                     }}>
-                    <Printer size={16} /> พิมพ์
+                    ใบเสร็จ
+                  </button>
+                  <button 
+                    onClick={() => onPrint && onPrint(inv.id, 'cashBill')}
+                    title="พิมพ์บิลเงินสด"
+                    style={{ 
+                      color: 'var(--primary-color)', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: '0.4rem 0.6rem', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      borderRadius: '8px', 
+                      backgroundColor: '#ebf2ef',
+                      fontWeight: '600',
+                      fontSize: '0.8rem'
+                    }}>
+                    บิลเงินสด
                   </button>
                   <button 
                     onClick={() => onEdit && onEdit(inv.id)}

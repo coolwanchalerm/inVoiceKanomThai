@@ -155,8 +155,7 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
   const promoDiscountTotal = computedDiscounts.reduce((sum, d) => sum + d.amount, 0);
   const totalAmount = Math.max(0, itemsSum - promoDiscountTotal);
 
-  const handleSaveAndPrint = async (e) => {
-    e.preventDefault();
+  const handleSaveAndPrint = async (documentType) => {
     if (!customerName) {
       alert('กรุณากรอกชื่อลูกค้า');
       return;
@@ -190,12 +189,12 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
       });
     });
 
-    onSubmitInvoice(invoiceData, finalItems);
+    onSubmitInvoice(invoiceData, finalItems, documentType);
   };
 
   return (
     <div style={{ padding: '1rem', paddingBottom: '100px', maxWidth: '800px', margin: '0 auto' }}>
-      <form onSubmit={handleSaveAndPrint}>
+      <form onSubmit={(e) => e.preventDefault()}>
         
         {/* Customer Details Card */}
         <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
@@ -459,18 +458,28 @@ export default function InvoiceGenerator({ onSubmitInvoice, products = [], topPr
             <div style={{ fontSize: '1.8rem', fontWeight: '700' }}>฿{totalAmount.toLocaleString()}</div>
           </div>
           {invoiceToEdit ? (
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button type="button" onClick={onCancelEdit} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#f1f5f9', color: '#64748b', fontWeight: '700', fontSize: '1.05rem', cursor: 'pointer', transition: 'background 0.2s' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => handleSaveAndPrint('receipt')} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                  ใบเสร็จรับเงิน
+                </button>
+                <button type="button" onClick={() => handleSaveAndPrint('cashBill')} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                  บิลเงินสด
+                </button>
+              </div>
+              <button type="button" onClick={onCancelEdit} style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: 'none', backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontSize: '0.95rem', cursor: 'pointer', transition: 'background 0.2s' }}>
                 ยกเลิกแก้ไข
-              </button>
-              <button type="submit" style={{ flex: 2, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                บันทึกการแก้ไข
               </button>
             </div>
           ) : (
-            <button type="submit" style={{ width: '100%', padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '1.05rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <Printer size={20} /> ออกใบเสร็จ (Print PDF)
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button type="button" onClick={() => handleSaveAndPrint('receipt')} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                ใบเสร็จรับเงิน
+              </button>
+              <button type="button" onClick={() => handleSaveAndPrint('cashBill')} style={{ flex: 1, padding: '1rem', borderRadius: '12px', border: 'none', backgroundColor: '#fff', color: 'var(--primary-color)', fontWeight: '700', fontSize: '0.95rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                บิลเงินสด
+              </button>
+            </div>
           )}
         </div>
 

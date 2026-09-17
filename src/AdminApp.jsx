@@ -28,6 +28,7 @@ export default function AdminApp() {
 
   const [printInvoice, setPrintInvoice] = useState(null);
   const [printItems, setPrintItems] = useState([]);
+  const [documentType, setDocumentType] = useState('receipt');
   const [invoiceToEdit, setInvoiceToEdit] = useState(null);
   
   // UI States
@@ -273,7 +274,7 @@ export default function AdminApp() {
     }
   };
 
-  const handleCreateInvoice = async (invoice, invoiceItems) => {
+  const handleCreateInvoice = async (invoice, invoiceItems, docType = 'receipt') => {
     setLoadingMessage('กำลังบันทึกลงระบบฐานข้อมูล...');
     setIsOverlayLoading(true);
     try {
@@ -313,6 +314,7 @@ export default function AdminApp() {
 
       
       // Prepare state for printing
+      setDocumentType(docType);
       setPrintInvoice(invoice);
       setPrintItems(invoiceItems);
       
@@ -328,10 +330,11 @@ export default function AdminApp() {
     }
   };
 
-  const handlePrintInvoice = (invoiceId) => {
+  const handlePrintInvoice = (invoiceId, docType = 'receipt') => {
     const invoice = invoices.find(inv => inv.id === invoiceId);
     if (!invoice) return;
     const invoiceItems = items.filter(item => item.invoiceId === invoiceId);
+    setDocumentType(docType);
     setPrintInvoice(invoice);
     setPrintItems(invoiceItems);
     setTimeout(() => {
@@ -693,6 +696,7 @@ export default function AdminApp() {
         ref={printRef}
         invoice={printInvoice}
         items={printItems}
+        documentType={documentType}
       />
 
       {/* Change PIN Modal */}

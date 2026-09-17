@@ -18,8 +18,10 @@ const formatThaiDate = (dateStr) => {
   return `วันที่ ${day} ${month} ${yearBE}`;
 };
 
-const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [] }, ref) {
+const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [], documentType = 'receipt' }, ref) {
   const paddedItems = invoice ? [...items] : [];
+  const documentTitle = documentType === 'cashBill' ? 'บิลเงินสด' : 'ใบเสร็จรับเงิน';
+  const documentTitleEn = documentType === 'cashBill' ? 'Cash Sale' : 'Receipt';
 
   return (
     <div className="print-only-container" ref={ref}>
@@ -30,12 +32,18 @@ const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [] 
             <tbody>
               <tr>
                 <td>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' }}>
-                    <img src="/logo.jpg" alt="โลโก้" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
-                    <div style={{ textAlign: 'left' }}>
-                      <div className="invoice-header-title" style={{ fontWeight: 'bold' }}>ร้านขนมไทยแทนคุณ</div>
-                      <div className="invoice-header-subtitle">695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร 47000</div>
-                      <div className="invoice-header-subtitle">เบอร์โทรศัพท์ 083-1641982 , 080-4628068</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <img src="/logo.jpg" alt="โลโก้" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                      <div style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        <div className="invoice-header-title" style={{ fontWeight: 'bold' }}>ร้านขนมไทยแทนคุณ</div>
+                        <div className="invoice-header-subtitle">695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร 47000</div>
+                        <div className="invoice-header-subtitle">เบอร์โทรศัพท์ 083-1641982 , 080-4628068</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <div style={{ fontSize: documentType === 'cashBill' ? '20px' : '14px', fontWeight: 'bold', marginBottom: '2px' }}>{documentTitle}</div>
+                      <div className="invoice-header-subtitle" style={{ fontSize: documentType === 'cashBill' ? '14px' : '12px' }}>{documentTitleEn}</div>
                     </div>
                   </div>
                 </td>
