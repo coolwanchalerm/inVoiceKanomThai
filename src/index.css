@@ -400,16 +400,118 @@ input[type="number"] {
   background-color: rgba(0, 0, 0, 0.01);
 }
 
-/* Print Styles & Layout matching PDF exactly */
+/* ============================================================
+   Invoice Layout — ใช้กับทั้ง html2canvas (PDF) และ @media print
+   ============================================================ */
+
+/* Off-screen container สำหรับ html2canvas capture */
 .print-only-container {
-  display: none;
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 794px;
+  background: #ffffff;
+  padding: 20px;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+  font-family: 'Sarabun', sans-serif;
 }
 
+.invoice-box {
+  width: 100%;
+  margin: 0 auto;
+  font-family: 'Sarabun', sans-serif;
+}
+
+.invoice-box * {
+  font-family: 'Sarabun', sans-serif;
+}
+
+.invoice-header-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.invoice-header-table td {
+  border: none;
+  padding: 15px;
+  text-align: center;
+}
+
+.invoice-header-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.invoice-header-subtitle {
+  font-size: 14px;
+}
+
+.invoice-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.invoice-items-table th,
+.invoice-items-table td {
+  border: 1px solid #000000;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.invoice-items-table td {
+  font-size: 12px;
+}
+
+.invoice-items-table th {
+  font-weight: bold;
+  font-size: 14px;
+  background-color: #f2f2f2;
+}
+
+.sub-header-row th {
+  font-size: 12px;
+  font-weight: normal;
+  padding-top: 3px;
+  padding-bottom: 4px;
+}
+
+.col-qty    { width: 12%; white-space: nowrap; }
+.col-desc   { width: 54%; text-align: left; }
+.col-price  { width: 17%; text-align: right; white-space: nowrap; }
+.col-amount { width: 17%; text-align: right; white-space: nowrap; }
+
+.invoice-items-table td.col-desc  { text-align: left; }
+.invoice-items-table td.col-price,
+.invoice-items-table td.col-amount { text-align: right; }
+
+.total-row-label {
+  font-weight: bold;
+  text-align: right;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+
+.total-row-val {
+  font-weight: bold;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.empty-row td { height: 40px; }
+
+/* ============================================================
+   @media print — ซ่อน app UI, แสดง print container, ขนาดหน้า
+   ============================================================ */
 @media print {
   @page {
     size: A5;
     margin: 5mm;
   }
+
   body {
     background-color: #ffffff;
     color: #000000;
@@ -418,148 +520,24 @@ input[type="number"] {
     padding: 0;
   }
 
-  /* Hide normal app layout elements */
   .app-container, .sidebar, .main-content {
     display: none !important;
   }
 
   .print-only-container {
-    display: block !important;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
+    position: static !important;
+    left: auto !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: auto !important;
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
   }
 
-  /* Specific Invoice Layout matching the pdf */
-  .invoice-box {
-    width: 100%;
-    margin: 0 auto;
-    font-family: 'Sarabun', sans-serif !important;
-  }
-
-  .invoice-box * {
-    font-family: 'Sarabun', sans-serif !important;
-  }
-
-  .invoice-header-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
-
-  .invoice-header-table td {
-    border: none;
-    padding: 15px;
-    text-align: center;
-  }
-
-  .invoice-header-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-
-  .invoice-header-subtitle {
-    font-size: 14px;
-  }
-
-  .customer-info-box {
-    display: flex;
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-  }
-
-  .customer-info-left {
-    width: 60%;
-    border: 1px solid #000000;
-    border-right: none;
-    padding: 15px;
-  }
-
-  .customer-info-right {
-    width: 40%;
-    border: 1px solid #000000;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-  }
-
-  .customer-title {
-    font-size: 14px;
-    margin-bottom: 5px;
-  }
-
-  .customer-name {
-    font-size: 16px;
-    text-align: center;
-    font-weight: bold;
-    padding: 5px 0;
-  }
-
-  .invoice-items-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  .invoice-items-table th, .invoice-items-table td {
-    border: 1px solid #000000;
-    padding: 8px 10px;
-    text-align: center;
-  }
-  
-  .invoice-items-table td {
-    font-size: 12px;
-  }
-
-  /* Header styles */
   .invoice-items-table th {
-    font-weight: bold;
-    font-size: 14px;
-    background-color: #f2f2f2 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-
-  .sub-header-row th {
-    font-size: 12px;
-    font-weight: normal;
-    padding-top: 3px !important;
-    padding-bottom: 4px !important;
-  }
-
-  .col-qty { width: 12%; white-space: nowrap; }
-  .col-desc { width: 54%; text-align: left !important; }
-  .col-price { width: 17%; text-align: right !important; white-space: nowrap; }
-  .col-amount { width: 17%; text-align: right !important; white-space: nowrap; }
-
-  .invoice-items-table td.col-desc {
-    text-align: left;
-  }
-
-  .invoice-items-table td.col-price, .invoice-items-table td.col-amount {
-    text-align: right;
-  }
-
-  .total-row-label {
-    font-weight: bold;
-    text-align: right !important;
-    padding-right: 12px !important;
-    white-space: nowrap;
-  }
-
-  .total-row-val {
-    font-weight: bold;
-    text-align: right !important;
-    white-space: nowrap;
-  }
-
-  /* Empty row for minimum height spacing if needed */
-  .empty-row td {
-    height: 40px;
   }
 }
 
