@@ -515,7 +515,7 @@ input[type="number"] {
 @media print {
   @page {
     size: A5;
-    margin: 5mm;
+    margin: 0;  /* ลบ header/footer ของ browser (URL, page number) */
   }
 
   body {
@@ -523,7 +523,7 @@ input[type="number"] {
     color: #000000;
     font-size: 14pt;
     margin: 0;
-    padding: 0;
+    padding: 5mm;  /* ใช้ padding แทน @page margin เพื่อเว้นขอบเนื้อหา */
   }
 
   .app-container, .sidebar, .main-content {
