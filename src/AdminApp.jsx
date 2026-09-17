@@ -53,8 +53,8 @@ export default function AdminApp() {
     window.navigator.standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches;
 
-  // สร้าง PDF จาก PrintLayout แล้วใช้ pdf.save() → iOS Share Sheet
-  // ใช้เฉพาะใน PWA standalone mode เท่านั้น
+  // สร้าง PDF จาก PrintLayout แล้วใช้ Web Share API → iOS Share Sheet
+  // ส่งเป็น File object ตรงๆ ไม่มี blob URL ปรากฏเวลาแชร์ไป LINE หรือแอปอื่น
   const generatePDF = useCallback(async () => {
     const element = printRef.current;
     if (!element) return;
@@ -93,10 +93,23 @@ export default function AdminApp() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-      // ใช้ save() → trigger <a download> → iOS แสดง Share Sheet
-      pdf.save('invoice.pdf');
+      // แปลง PDF เป็น Blob → File object สำหรับ Web Share API
+      const pdfBlob = pdf.output('blob');
+      const pdfFile = new File([pdfBlob], 'invoice.pdf', { type: 'application/pdf' });
+
+      // ใช้ Web Share API ส่ง File ตรงๆ → ไม่มี blob: URL ปรากฏบน iOS/LINE
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          files: [pdfFile],
+        });
+      } else {
+        // Fallback สำหรับ browser ที่ไม่รองรับ Web Share API
+        pdf.save('invoice.pdf');
+      }
 
     } catch (err) {
+      // AbortError = ผู้ใช้กดยกเลิก Share Sheet → ไม่ต้องแสดง error
+      if (err.name === 'AbortError') return;
       console.error('generatePDF error:', err);
       showModal('เกิดข้อผิดพลาด', 'ไม่สามารถสร้าง PDF ได้: ' + err.message, 'error');
     } finally {
