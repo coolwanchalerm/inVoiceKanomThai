@@ -31,19 +31,26 @@ const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [],
           <table className="invoice-header-table">
             <tbody>
               <tr>
-                <td>
+                <td style={{ padding: '0 0 15px 0' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      <img src="/logo.jpg" alt="โลโก้" style={{ width: '80px', height: '80px', objectFit: 'cover' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <img src="/logo.jpg" alt="โลโก้" style={{ width: '65px', height: '65px', objectFit: 'cover' }} />
                       <div style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-                        <div className="invoice-header-title" style={{ fontWeight: 'bold' }}>ร้านขนมไทยแทนคุณ</div>
-                        <div className="invoice-header-subtitle">695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร 47000</div>
-                        <div className="invoice-header-subtitle">เบอร์โทรศัพท์ 083-1641982 , 080-4628068</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '2px' }}>ร้านขนมไทยแทนคุณ</div>
+                        <div style={{ fontSize: '12px', lineHeight: '1.4' }}>695 ม.4 ต.ดงมะไฟ อ.เมือง จ.สกลนคร 47000</div>
+                        <div style={{ fontSize: '12px', lineHeight: '1.4' }}>เบอร์โทรศัพท์ 083-1641982 , 080-4628068</div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      <div style={{ fontSize: documentType === 'cashBill' ? '20px' : '14px', fontWeight: 'bold', marginBottom: '2px' }}>{documentTitle}</div>
-                      <div className="invoice-header-subtitle" style={{ fontSize: documentType === 'cashBill' ? '14px' : '12px' }}>{documentTitleEn}</div>
+                    <div style={{ 
+                      border: '1px solid #000', 
+                      borderRadius: '8px', 
+                      padding: '6px 14px', 
+                      textAlign: 'center', 
+                      whiteSpace: 'nowrap', 
+                      flexShrink: 0 
+                    }}>
+                      <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '2px' }}>{documentTitle}</div>
+                      <div className="invoice-header-subtitle" style={{ fontSize: '14px' }}>{documentTitleEn}</div>
                     </div>
                   </div>
                 </td>
@@ -54,6 +61,7 @@ const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [],
           {/* Customer & Date Info Box */}
           <div className="customer-info-box" style={{ 
             border: '1px solid #000', 
+            borderRadius: '8px',
             padding: '15px 20px', 
             display: 'flex', 
             flexDirection: 'column', 
