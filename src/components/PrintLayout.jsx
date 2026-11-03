@@ -63,22 +63,21 @@ const PrintLayout = React.forwardRef(function PrintLayout({ invoice, items = [],
             border: '1px solid #000', 
             borderRadius: '8px',
             padding: '15px 20px', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px',
             marginBottom: '20px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div style={{ fontSize: '16px', fontWeight: 'bold' }}>ชื่อลูกค้า</div>
               <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{formatThaiDate(invoice.date)}</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '16px', flex: 1 }}>{invoice.customerName || '-'}</div>
-              <div style={{ fontSize: '14px', flex: 1, textAlign: 'right' }}>เลขประจำตัวผู้เสียภาษี</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '14px', flex: 1, paddingRight: '20px' }}>{invoice.customerAddress || '-'}</div>
-              <div style={{ fontSize: '14px', flex: 1, textAlign: 'right' }}>{invoice.customerTaxId || '-'}</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
+              <div style={{ flex: '0 0 66%' }}>
+                <div style={{ fontSize: '16px', marginBottom: '4px' }}>{invoice.customerName || '-'}</div>
+                <div style={{ fontSize: '14px' }}>{invoice.customerAddress || '-'}</div>
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                <div style={{ fontSize: '14px', marginBottom: '4px' }}>เลขประจำตัวผู้เสียภาษี</div>
+                <div style={{ fontSize: '14px' }}>{invoice.customerTaxId || '-'}</div>
+              </div>
             </div>
           </div>
 
